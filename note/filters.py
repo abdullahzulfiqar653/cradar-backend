@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 
-from note.models import Note
+from note.models import Note, Organization
 from project.models import Project
 
 
@@ -14,9 +14,16 @@ def auth_users_in_project(request):
     return Project.objects.get(id=project_id).users.all()
 
 
+def organizations_in_project(request):
+    project_id = request.parser_context["kwargs"]["project_id"]
+    return Organization.objects.filter(project_id=project_id)
+
+
 class NoteFilter(filters.FilterSet):
-    company_name = filters.ModelMultipleChoiceFilter(
-        to_field_name="company_name", queryset=notes_in_project
+    organization = filters.ModelMultipleChoiceFilter(
+        field_name="organizations__name",
+        to_field_name="name",
+        queryset=organizations_in_project,
     )
     type = filters.ModelMultipleChoiceFilter(
         to_field_name="type", queryset=notes_in_project

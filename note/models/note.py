@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from shortuuid.django_fields import ShortUUIDField
 
+from note.models.organization import Organization
 from project.models import Project
 from tag.models import Keyword
 from takeaway.models import Highlight
@@ -54,7 +55,7 @@ class Note(models.Model):
     workspace = models.ForeignKey(
         Workspace, on_delete=models.CASCADE, related_name="notes"
     )
-    company_name = models.CharField(max_length=255)
+    organizations = models.ManyToManyField(Organization, related_name="notes")
     revenue = models.CharField(max_length=6, choices=Revenue.choices, null=True)
     user_participants = models.ManyToManyField(User)
     description = models.TextField()

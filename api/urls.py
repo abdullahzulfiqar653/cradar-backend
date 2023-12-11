@@ -12,8 +12,8 @@ from note.views import (
 )
 from project.views import (
     ProjectAuthUserListView,
-    ProjectCompanyListView,
     ProjectNoteListCreateView,
+    ProjectOrganizationListView,
     ProjectRetrieveUpdateDeleteView,
     ProjectTagListView,
     ProjectTakeawayListView,
@@ -120,14 +120,14 @@ urlpatterns = [
         name="project-tag-list",
     ),
     path(
-        "projects/<str:project_id>/companies/",
-        ProjectCompanyListView.as_view(),
-        name="project-company-list",
+        "projects/<str:project_id>/organizations/",
+        ProjectOrganizationListView.as_view(),
+        name="project-organization-list",
     ),
     path(
         "projects/<str:project_id>/types/",
         ProjectTypeListView.as_view(),
-        name="project-company-list",
+        name="project-types-list",
     ),
     path(
         "projects/<str:project_id>/insights/",

@@ -110,7 +110,7 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         project = self.get_project()
-        self.check_eligibility(project)
+        # self.check_eligibility(project)
         note = serializer.save(author=self.request.user, project=project)
         if note.file:
             thread = Thread(

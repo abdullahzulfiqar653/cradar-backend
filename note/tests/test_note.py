@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from note.models import Note
+from note.models.organization import Organization
 from project.models import Project
 from tag.models import Keyword
 from takeaway.models import Highlight
@@ -59,7 +60,7 @@ class TestNoteKeywordDestroyView(APITestCase):
         self.assertTrue(self.note.keywords.contains(self.existing_keyword))
 
 
-class TestNoteUpdateView(APITestCase):
+class TestNoteRetrieveUpdateDeleteView(APITestCase):
     def setUp(self) -> None:
         self.user = User.objects.create_user(username="user", password="password")
 
@@ -73,31 +74,56 @@ class TestNoteUpdateView(APITestCase):
             author=self.user,
             content="This is a sample text only.",
         )
-        self.highlight = Highlight.objects.create(
+        return super().setUp()
+
+    def test_highlight_remain_after_user_edit_note_content(self):
+        highlight = Highlight.objects.create(
             start=10,
             end=16,
             note=self.note,
             created_by=self.user,
         )
-        return super().setUp()
-
-    def test_highlight_remain_after_user_edit_note_content(self):
         self.client.force_authenticate(self.user)
         url = f"/api/reports/{self.note.id}/"
         data = {
             "content": "This is an edited sample text.",
             "highlights": [
                 {
-                    "id": self.highlight.id,
+                    "id": highlight.id,
                     "start": 18,
                     "end": 24,
                 }
             ],
         }
         response = self.client.patch(url, data=data)
-        self.highlight.refresh_from_db()
+        highlight.refresh_from_db()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(self.note.highlights.contains(self.highlight))
-        self.assertEqual(self.highlight.title, "sample")
-        self.assertEqual(self.highlight.start, 18)
-        self.assertEqual(self.highlight.end, 24)
+        self.assertTrue(self.note.highlights.contains(highlight))
+        self.assertEqual(highlight.title, "sample")
+        self.assertEqual(highlight.start, 18)
+        self.assertEqual(highlight.end, 24)
+
+    def test_user_update_note_organization(self):
+        self.client.force_authenticate(self.user)
+        url = f"/api/reports/{self.note.id}/"
+
+        # Test add organization
+        data = {"organizations": [{"name": "added organization"}]}
+        response = self.client.patch(url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.note.organizations.count(), 1)
+        organization1 = self.note.organizations.first()
+        self.assertEqual(organization1.name, "added organization")
+
+        # Test replace organization
+        data = {"organizations": [{"name": "replaced organization"}]}
+        response = self.client.patch(url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.note.organizations.count(), 1)
+        organization2 = self.note.organizations.first()
+        self.assertEqual(organization2.name, "replaced organization")
+        self.assertEqual(
+            Organization.objects.filter(id=organization1.id).count(),
+            0,
+            "Organization that is not related to any note is not cleaned up.",
+        )

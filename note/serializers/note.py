@@ -1,7 +1,10 @@
 # note/serializers.py
+from django.db.models import Count
 from rest_framework import serializers
 
 from note.models import Note
+from note.models.organization import Organization
+from note.serializers.organization import OrganizationSerializer
 from tag.serializers import KeywordSerializer
 from takeaway.models import Highlight
 from takeaway.serializers import HighlightSerializer
@@ -41,6 +44,7 @@ class NoteSerializer(serializers.ModelSerializer):
     content = serializers.CharField(required=False, default="", allow_blank=True)
     summary = serializers.CharField(required=False, default="", allow_blank=True)
     highlights = SkipIdValidatorHighlightSerializer(many=True, required=False)
+    organizations = OrganizationSerializer(many=True)
 
     class Meta:
         model = Note
@@ -57,7 +61,7 @@ class NoteSerializer(serializers.ModelSerializer):
             "summary",
             "title",
             "created_at",
-            "company_name",
+            "organizations",
             "content",
             "revenue",
             "description",
@@ -87,25 +91,57 @@ class NoteSerializer(serializers.ModelSerializer):
         self.db_highlights = db_highlights
         return highlights
 
-    def update(self, instance, validated_data):
-        highlights = validated_data.pop("highlights", None)
-        instance = super().update(instance, validated_data)
-        if highlights is None:
-            return instance
+    def create(self, validated_data):
+        project_id = self.context["view"].kwargs["project_id"]
+        organizations = validated_data.pop("organizations", None)
+        note = Note.objects.create(**validated_data)
 
-        get_highlight = {
-            highlight["id"]: highlight
-            for highlight in highlights
-            if "id" in highlight and highlight["id"]
-        }
-        for db_highlight in self.db_highlights:
-            highlight = get_highlight.get(db_highlight.id)
-            if highlight is None:
-                db_highlight.delete()
-            else:
-                db_highlight.start = highlight["start"]
-                db_highlight.end = highlight["end"]
-                db_highlight.save()
+        for organization_dict in organizations:
+            organization_name = organization_dict["name"]
+            organization, _ = Organization.objects.get_or_create(
+                name=organization_name, project_id=project_id
+            )
+            note.organizations.add(organization)
+
+        return note
+
+    def update(self, instance, validated_data):
+        project = instance.project
+        highlights = validated_data.pop("highlights", None)
+        organizations = validated_data.pop("organizations", None)
+        instance: Note = super().update(instance, validated_data)
+
+        if highlights is not None:
+            get_highlight = {
+                highlight["id"]: highlight
+                for highlight in highlights
+                if "id" in highlight and highlight["id"]
+            }
+            for db_highlight in self.db_highlights:
+                highlight = get_highlight.get(db_highlight.id)
+                if highlight is None:
+                    db_highlight.delete()
+                else:
+                    db_highlight.start = highlight["start"]
+                    db_highlight.end = highlight["end"]
+                    db_highlight.save()
+
+        if organizations is not None:
+            organizations_to_add = []
+            for organization_dict in organizations:
+                organization_name = organization_dict["name"]
+                organization, _ = Organization.objects.get_or_create(
+                    name=organization_name, project=project
+                )
+                organizations_to_add.append(organization)
+            instance.organizations.set(organizations_to_add)
+            # Clean up
+            (
+                Organization.objects.filter(project=project)
+                .annotate(note_count=Count("notes"))
+                .filter(note_count=0)
+                .delete()
+            )
 
         return instance
 
