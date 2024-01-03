@@ -42,7 +42,7 @@ class NoteSerializer(serializers.ModelSerializer):
     file_type = serializers.CharField(read_only=True)
     keywords = KeywordSerializer(many=True, required=False)
     content = serializers.CharField(required=False, default="", allow_blank=True)
-    summary = serializers.CharField(required=False, default="", allow_blank=True)
+    summary = serializers.JSONField(required=False, default=[])
     highlights = SkipIdValidatorHighlightSerializer(many=True, required=False)
     organizations = OrganizationSerializer(many=True)
 

@@ -54,7 +54,7 @@ class MetadataSchema(BaseModel):
         description="A short paragraph describing what the meeting is about."
     )
     meeting_type: MeetingType = Field(description="What is the meeting type?")
-    summary: str = Field(description="Summary of the text.")
+    summary: list[str] = Field(description="Summary of the text in point form.")
     sentiment: Optional[Note.Sentiment] = Field(
         description="The sentiment of the text."
     )
