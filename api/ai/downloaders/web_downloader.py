@@ -1,9 +1,7 @@
 import time
 from typing import Any
 
-import markdown
 from html2text import HTML2Text
-from html_to_draftjs import html_to_draftjs
 from playwright._impl._errors import TimeoutError
 from playwright.sync_api import sync_playwright
 
@@ -38,10 +36,7 @@ class WebDownloader:
         raw_markdown_string = html2text.handle(result)
         markdown_string = remove_lines_before_header(raw_markdown_string)
 
-        html_string = markdown.markdown(markdown_string)
-        content_state = html_to_draftjs(html_string)
-
-        return content_state
+        return {"markdown": markdown_string}
 
 
 __all__ = ["WebDownloader"]
