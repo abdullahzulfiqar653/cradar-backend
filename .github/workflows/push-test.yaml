@@ -1,0 +1,43 @@
+name: Test Deployment
+
+on:
+  push:
+    branches:
+    - test-deployment
+
+env:
+  ECR_REPO_ROOT: ${{ secrets.ECR_REPO_ROOT }}
+
+jobs:
+  deploy-raijin-local:
+    runs-on: ubuntu-latest
+
+    env:
+      ECR_REPO_NAME: backend
+      ECR_TAG: raijin-local
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+  
+      - name: Configure AWS credentials
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ap-southeast-1 # Change to your desired region
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin $ECR_REPO_ROOT
+  
+      - name: Build and tag Docker image
+        run: |
+          docker build -t $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }}-${{ env.ECR_TAG }} .
+          docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }}-${{ env.ECR_TAG }}
+
+          docker tag $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }}-${{ env.ECR_TAG }} $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ env.ECR_TAG }}
+          docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ env.ECR_TAG }}
