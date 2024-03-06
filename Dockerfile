@@ -21,6 +21,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install && \
     playwright install-deps
 
+# Copy source code
+COPY . .
+
 # Expose port 8000 for the Django development server
 EXPOSE 8000
 
