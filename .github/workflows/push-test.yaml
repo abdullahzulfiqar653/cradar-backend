@@ -39,3 +39,7 @@ jobs:
           docker build -t $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }} -t $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ env.ECR_TAG }} .
           docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }}
           docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ env.ECR_TAG }}
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service --cluster raijin-local-ecs-cluster --service raijin-local --force-new-deployment
