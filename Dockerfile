@@ -27,4 +27,4 @@ COPY . .
 # Expose port 8000 for the Django development server
 EXPOSE 8000
 
-CMD ["sh", "docker-entrypoint.sh"]
+CMD ["bash", "docker-entrypoint.sh"]
