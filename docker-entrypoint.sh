@@ -1,4 +1,6 @@
 #!/bin/bash
+echo $GOOGLE_APPLICATION_CREDENTIALS_JSON
+
 if [ ! -f "credentials/sylvan-harmony-404807-02d7953b3a5c.json" ] \
     && [ -n "${GOOGLE_APPLICATION_CREDENTIALS_JSON}" ]; then
     mkdir -p credentials
