@@ -1,4 +1,3 @@
-from pprint import pprint
 from typing import Optional
 
 from django.utils.translation import gettext
@@ -13,14 +12,18 @@ from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.document import Document
 from langchain.text_splitter import TokenTextSplitter
 from langchain_community.chat_models import ChatOpenAI
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field, StringConstraints
+from typing_extensions import Annotated
 
 from api.ai import config
+from api.ai.generators.utils import token_tracker
 from api.models.keyword import Keyword
 from api.models.note import Note
+from api.models.user import User
 
 
-def generate_metadata(note: Note):
+def get_chain():
+
     llm = ChatOpenAI(model=config.model)
 
     map_prompt = ChatPromptTemplate.from_messages(
@@ -38,7 +41,7 @@ def generate_metadata(note: Note):
             ),
         ]
     )
-    map_chain = LLMChain(llm=llm, prompt=map_prompt, verbose=True)
+    map_chain = LLMChain(llm=llm, prompt=map_prompt)
 
     class MetadataSchema(BaseModel):
         title: str = Field(
@@ -71,7 +74,7 @@ def generate_metadata(note: Note):
         sentiment: Optional[Note.Sentiment] = Field(
             description=gettext("The sentiment of the text.")
         )
-        keywords: list[constr(max_length=50)] = Field(
+        keywords: list[Annotated[str, StringConstraints(max_length=50)]] = Field(
             description=gettext("The list of relevant keywords of the text.")
         )
 
@@ -94,7 +97,7 @@ def generate_metadata(note: Note):
         ]
     )
     reduce_chain = create_structured_output_chain(
-        MetadataSchema.schema(), llm, reduce_prompt
+        MetadataSchema.model_json_schema(), llm, reduce_prompt
     )
 
     combine_documents_chain = StuffDocumentsChain(
@@ -104,13 +107,15 @@ def generate_metadata(note: Note):
     )
     reduce_documents_chain = ReduceDocumentsChain(
         combine_documents_chain=combine_documents_chain,
-        verbose=True,
     )
     map_reduce_chain = MapReduceDocumentsChain(
         llm_chain=map_chain,
         reduce_documents_chain=reduce_documents_chain,
-        verbose=True,
     )
+    return map_reduce_chain
+
+
+def generate_metadata(note: Note, created_by: User):
 
     text_splitter = TokenTextSplitter(
         model_name=config.model,
@@ -121,8 +126,9 @@ def generate_metadata(note: Note):
     doc = Document(page_content=note.get_content_text())
     docs = text_splitter.split_documents([doc])
 
-    output = map_reduce_chain.invoke(docs)
-    pprint(output)
+    map_reduce_chain = get_chain()
+    with token_tracker(note.project, note, "generate-metadata", created_by):
+        output = map_reduce_chain.invoke(docs)
     metadata = output["output_text"]
     note.title = metadata["title"]
     note.description = metadata["description"]

@@ -8,9 +8,12 @@ from langchain.text_splitter import TokenTextSplitter
 from langchain_community.chat_models import ChatOpenAI
 
 from api.ai import config
+from api.ai.generators.utils import token_tracker
+from api.models.project import Project
+from api.models.user import User
 
 
-def summarize_project(project):
+def summarize_project(project: Project, created_by: User):
     llm = ChatOpenAI(model=config.model)
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -53,7 +56,7 @@ def summarize_project(project):
         note_summaries_string = "- " + "\n- ".join(filtered_note_summaries_list)
         doc = Document(page_content=note_summaries_string)
         truncated = text_splitter.split_documents([doc])[0].page_content
-        print("\n\n", truncated, "\n")
-        output = chain.invoke({"text": truncated})
+        with token_tracker(project, project, "summarize-project", created_by):
+            output = chain.invoke({"text": truncated})
         project.summary = output.content
     project.save()

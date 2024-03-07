@@ -34,9 +34,10 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
 
 class WorkspaceDetailSerializer(WorkspaceSerializer):
-    usage_minutes = serializers.IntegerField(read_only=True)
-    usage_tokens = serializers.IntegerField(read_only=True)
-    total_file_size = serializers.IntegerField(read_only=True)
+    usage_minutes = serializers.SerializerMethodField()
+
+    def get_usage_minutes(self, workspace):
+        return round(workspace.usage_seconds / 60)
 
     class Meta:
         model = Workspace

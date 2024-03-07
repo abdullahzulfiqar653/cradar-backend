@@ -1,15 +1,15 @@
 import json
 
+from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
-from django.db.models import Count, Sum
-from django.db.models.functions import Coalesce, Round
+from django.db.models import Count
 from django.http.request import QueryDict
+from pydub.utils import mediainfo
 from rest_framework import exceptions, generics, serializers
 
+from api.ai.transcribers import openai_transcriber
 from api.filters.note import NoteFilter
 from api.models.note import Note
-from api.models.project import Project
-from api.models.workspace import Workspace
 from api.serializers.note import ProjectNoteSerializer
 from api.tasks import analyze_new_note
 
@@ -75,25 +75,54 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
 
         return super().get_serializer(*args, **kwargs)
 
-    def check_eligibility(self, project: Project):
-        workspace = (
-            Workspace.objects.filter(id=project.workspace.id)
-            .annotate(
-                usage_minutes=Coalesce(
-                    Round(Sum("projects__notes__file_duration_seconds") / 60),
-                    0,
-                )
+    def check_eligibility(self, serializer):
+        if serializer.validated_data["file"] is None:
+            # Skip checking if no file uploaded
+            return
+
+        file = serializer.validated_data["file"].file
+        file_type = file.name.split(".")[-1]
+        if file_type not in openai_transcriber.supported_filetypes:
+            # Skip checking for transcription limit if not audio file
+            return
+
+        file_size = serializer.validated_data["file"].size
+        total_file_size_in_gb = file_size / 1024 / 1024 / 1024
+        if total_file_size_in_gb > settings.STORAGE_GB_WORKSPACE:
+            limit = settings.STORAGE_GB_WORKSPACE
+            raise exceptions.PermissionDenied(
+                f"You have reached the storage limit of {limit} GB."
             )
-            .annotate(
-                usage_tokens=Coalesce(Sum("projects__notes__analyzing_tokens"), 0)
+
+        # Extract audio info
+        audio_info = mediainfo(file.name)
+        if audio_info.get("duration") is None:
+            raise exceptions.ValidationError("Failed to get audio file information.")
+
+        # Check current audio file limit
+        audio_duration_in_seconds = float(audio_info.get("duration"))
+        audio_duration_in_minutes = audio_duration_in_seconds / 60
+        if audio_duration_in_minutes > settings.DURATION_MINUTE_SINGLE_FILE:
+            limit = settings.DURATION_MINUTE_SINGLE_FILE
+            raise exceptions.PermissionDenied(
+                f"Please only upload audio file with less than {limit} minutes. "
+                f"The current file has duration {round(audio_duration_in_minutes)} minutes."
             )
-            .first()
-        )
-        if (workspace.usage_minutes > 60) or (workspace.usage_tokens > 50_000):
-            raise exceptions.PermissionDenied("Quota limit is hit.")
+
+        # Check workspace-wise audio file limit
+        workspace = self.request.project.workspace
+        total_seconds = workspace.usage_seconds + audio_duration_in_seconds
+        total_minutes = total_seconds / 60
+        if total_minutes > settings.DURATION_MINUTE_WORKSPACE:
+            raise exceptions.PermissionDenied(
+                "You have reached the audio transcription limit "
+                "so you can no longer upload audio files this month. "
+                "Your limit will reset in the next month. "
+                "Please contact our Support if you still need more assistance."
+            )
 
     def perform_create(self, serializer):
-        # self.check_eligibility(project)
+        self.check_eligibility(serializer)
         note = serializer.save(author=self.request.user, project=self.request.project)
         if note.file or note.url:
-            analyze_new_note.delay(note.id)
+            analyze_new_note.delay(note.id, self.request.user.id)

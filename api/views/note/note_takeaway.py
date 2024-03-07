@@ -1,6 +1,6 @@
 from rest_framework import generics
 
-from api.filters.takeaway import TakeawayFilter
+from api.filters.takeaway import NoteTakeawayFilter
 from api.models.takeaway import Takeaway
 from api.serializers.takeaway import TakeawaySerializer
 
@@ -8,7 +8,7 @@ from api.serializers.takeaway import TakeawaySerializer
 class NoteTakeawayListCreateView(generics.ListCreateAPIView):
     queryset = Takeaway.objects.all()
     serializer_class = TakeawaySerializer
-    filterset_class = TakeawayFilter
+    filterset_class = NoteTakeawayFilter
     ordering_fields = [
         "created_at",
         "created_by__first_name",

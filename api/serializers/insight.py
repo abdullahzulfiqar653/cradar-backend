@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from api.models.insight import Insight
-from api.serializers.takeaway import TakeawaySerializer
 from api.serializers.user import UserSerializer
 
 
@@ -29,7 +28,6 @@ class ProjectInsightSerializer(serializers.ModelSerializer):
 
 
 class InsightSerializer(serializers.ModelSerializer):
-    takeaways = TakeawaySerializer(many=True, read_only=True)
     created_by = UserSerializer(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
@@ -41,5 +39,4 @@ class InsightSerializer(serializers.ModelSerializer):
             "description",
             "created_at",
             "created_by",
-            "takeaways",
         ]

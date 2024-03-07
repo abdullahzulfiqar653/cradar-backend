@@ -12,6 +12,7 @@ class TranscriberRouter(BaseTranscriber):
         docx_transcriber,
         text_transcriber,
     ]
+    transcriber_used = None
 
     @property
     def supported_filetypes(self):
@@ -25,7 +26,5 @@ class TranscriberRouter(BaseTranscriber):
         self.check_filetype(filetype)
         for transcriber in self.transcribers:
             if filetype in transcriber.supported_filetypes:
+                self.transcriber_used = transcriber
                 return transcriber.transcribe(filepath, filetype, language)
-
-
-transcriber_router = TranscriberRouter()

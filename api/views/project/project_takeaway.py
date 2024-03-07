@@ -24,4 +24,8 @@ class ProjectTakeawayListView(generics.ListAPIView):
     ]
 
     def get_queryset(self):
-        return Takeaway.objects.filter(note__project=self.request.project)
+        return (
+            Takeaway.objects.filter(note__project=self.request.project)
+            .select_related("created_by", "type", "note", "question")
+            .prefetch_related("tags")
+        )

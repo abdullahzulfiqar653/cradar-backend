@@ -1,4 +1,7 @@
 from django.db import models
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 from django.utils.text import slugify
 from shortuuid.django_fields import ShortUUIDField
 
@@ -18,6 +21,32 @@ class Workspace(models.Model):
     domain_slug = models.SlugField(max_length=50, unique=True)
 
     members = models.ManyToManyField(User, related_name="workspaces")
+
+    @property
+    def usage_seconds(self):
+        now = timezone.now()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        return (
+            self.transcription_usages.filter(created_at__gt=start_of_month)
+            .aggregate(value=Coalesce(Sum("value"), 0))
+            .get("value")
+        )
+
+    @property
+    def usage_tokens(self):
+        now = timezone.now()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        return (
+            self.token_usages.filter(created_at__gt=start_of_month)
+            .aggregate(value=Coalesce(Sum("value"), 0))
+            .get("value")
+        )
+
+    @property
+    def total_file_size(self):
+        return self.notes.aggregate(value=Sum("file_size")).get("value")
 
     def __str__(self):
         return f"{self.id} - {self.name}"

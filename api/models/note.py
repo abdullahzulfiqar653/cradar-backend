@@ -74,15 +74,12 @@ class Note(models.Model):
     )
     file_type = models.CharField(max_length=4, choices=FileType.choices, null=True)
     file_size = models.IntegerField(null=True, help_text="File size measured in bytes.")
-    file_duration_seconds = models.IntegerField(null=True)
     is_analyzing = models.BooleanField(default=False)
     is_auto_tagged = models.BooleanField(default=False)
     content = models.JSONField(null=True)
     summary = models.JSONField(default=list)
     keywords = models.ManyToManyField(Keyword, related_name="notes")
     sentiment = models.CharField(max_length=8, choices=Sentiment.choices, null=True)
-    analyzing_tokens = models.IntegerField(default=0)
-    analyzing_cost = models.DecimalField(default=0, decimal_places=7, max_digits=11)
     questions = models.ManyToManyField(
         Question, related_name="notes", through="api.NoteQuestion"
     )

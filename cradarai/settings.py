@@ -37,10 +37,10 @@ DEBUG = env("DEBUG", cast=bool)
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", cast=list)
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.kizunna\.com/?$",
-    r"^https://.*\.raijin\.ai/?$",
+    r"^https://\w+\.kizunna\.com/?$",
+    r"^https://\w+\.raijin\.ai/?$",
     "http://localhost:5173",
-    "http://localhost:8000",
+    "http://localhost:3000",
 ]
 FRONTEND_URL = env("FRONTEND_URL")
 
@@ -214,6 +214,7 @@ else:
     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
     default_storage_backend = "django.core.files.storage.FileSystemStorage"
 
+FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.TemporaryFileUploadHandler"]
 STORAGES = {
     "default": {
         "BACKEND": default_storage_backend,
@@ -266,3 +267,8 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Celery config
 CELERY_BROKER_URL = env("CELERY_BROKER_URL")
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Transcription duration limit
+DURATION_MINUTE_SINGLE_FILE = env("DURATION_MINUTE_SINGLE_FILE", cast=int)
+DURATION_MINUTE_WORKSPACE = env("DURATION_MINUTE_WORKSPACE", cast=int)
+STORAGE_GB_WORKSPACE = env("STORAGE_GB_WORKSPACE", cast=int)

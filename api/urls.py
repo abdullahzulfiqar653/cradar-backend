@@ -2,6 +2,14 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from api.views.asset.asset import AssetRetrieveUpdateDeleteView
+from api.views.asset.asset_block import AssetBlockListCreateView
+from api.views.block.block import BlockRetrieveUpdateDeleteView
+from api.views.block.block_generate import BlockGenerateCreateView
+from api.views.block.block_takeaway import (
+    BlockTakeawayDeleteView,
+    BlockTakeawayListCreateView,
+)
 from api.views.insight.insight import InsightRetrieveUpdateDeleteView
 from api.views.insight.insight_tag import InsightTagListView
 from api.views.insight.insight_takeaway import (
@@ -20,6 +28,7 @@ from api.views.note.note_takeaway import NoteTakeawayListCreateView
 from api.views.note_template import NoteTemplateRetrieveUpdateDestroyView
 from api.views.note_template_question import NoteTemplateQuestionListView
 from api.views.project.project import ProjectRetrieveUpdateDeleteView
+from api.views.project.project_asset import ProjectAssetListCreateView
 from api.views.project.project_insight import ProjectInsightListCreateView
 from api.views.project.project_invitation import ProjectInvitationCreateView
 from api.views.project.project_keyword import ProjectKeywordListView
@@ -179,7 +188,12 @@ urlpatterns = [
     path(
         "projects/<str:project_id>/report-templates/",
         ProjectNoteTemplateListCreateView.as_view(),
-        name="project-note-template-list",
+        name="project-note-template-list-create",
+    ),
+    path(
+        "projects/<str:project_id>/assets/",
+        ProjectAssetListCreateView.as_view(),
+        name="project-asset-list-create",
     ),
     # =====================================================
     # Workspace
@@ -239,6 +253,42 @@ urlpatterns = [
         "insights/<str:insight_id>/tags/",
         InsightTagListView.as_view(),
         name="insight-tag-list",
+    ),
+    # =====================================================
+    # Asset
+    # =====================================================
+    path(
+        "assets/<str:pk>/",
+        AssetRetrieveUpdateDeleteView.as_view(),
+        name="asset-retrieve-update-delete",
+    ),
+    path(
+        "assets/<str:asset_id>/blocks/",
+        AssetBlockListCreateView.as_view(),
+        name="asset-block-list-create",
+    ),
+    # =====================================================
+    # Block
+    # =====================================================
+    path(
+        "blocks/<str:pk>/",
+        BlockRetrieveUpdateDeleteView.as_view(),
+        name="block-retrieve-update-delete",
+    ),
+    path(
+        "blocks/<str:block_id>/generate/",
+        BlockGenerateCreateView.as_view(),
+        name="block-generate-create",
+    ),
+    path(
+        "blocks/<str:block_id>/takeaways/",
+        BlockTakeawayListCreateView.as_view(),
+        name="block-takeaway-list-create",
+    ),
+    path(
+        "blocks/<str:block_id>/takeaways/delete/",
+        BlockTakeawayDeleteView.as_view(),
+        name="block-takeaway-delete",
     ),
     # =====================================================
     # Auth

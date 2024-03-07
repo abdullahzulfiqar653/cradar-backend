@@ -72,6 +72,22 @@ class HasWorkspaceProjectPermission(permissions.BasePermission):
                 project = request.insight.project
                 workspace = project.workspace
 
+            case str(s) if s.startswith("/api/assets/"):
+                Asset = apps.get_model("api", "Asset")
+                asset_id = view.kwargs.get("pk") or view.kwargs.get("asset_id")
+                queryset = Asset.objects.select_related("project__workspace")
+                request.asset = get_instance(queryset, asset_id)
+                project = request.asset.project
+                workspace = project.workspace
+
+            case str(s) if s.startswith("/api/blocks/"):
+                Block = apps.get_model("api", "Block")
+                block_id = view.kwargs.get("pk") or view.kwargs.get("block_id")
+                queryset = Block.objects.select_related("asset__project__workspace")
+                request.block = get_instance(queryset, block_id)
+                project = request.block.asset.project
+                workspace = project.workspace
+
             case "/api/workspaces/":
                 project = None
                 workspace = None

@@ -1,7 +1,4 @@
-from decimal import Decimal
-
 from drf_spectacular.utils import extend_schema
-from langchain.callbacks import get_openai_callback
 from rest_framework import generics, status
 from rest_framework.response import Response
 
@@ -15,15 +12,8 @@ class NoteTagGenerateView(generics.CreateAPIView):
 
         # Call OpenAI
         try:
-            with get_openai_callback() as callback:
-                generate_tags(note)
-                note.analyzing_tokens += callback.total_tokens
-                note.analyzing_cost += Decimal(callback.total_cost)
-            note.save()
-        except:
-            import traceback
-
-            traceback.print_exc()
+            generate_tags(note, created_by=self.request.user)
+        except Exception as e:
             return Response(
                 {"details": "Failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

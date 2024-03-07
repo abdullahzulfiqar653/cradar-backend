@@ -8,5 +8,5 @@ from api.tasks import analyze_existing_note
 class NoteExtractCreateView(generics.CreateAPIView):
     def create(self, request, report_id):
         note = request.note
-        analyze_existing_note.delay(note.id)
+        analyze_existing_note.delay(note.id, self.request.user.id)
         return response.Response({"details": "Job sent"})

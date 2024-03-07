@@ -2,10 +2,13 @@ import time
 from typing import Any
 
 import markdown
+from django.utils import translation
 from html2text import HTML2Text
 from html_to_draftjs import html_to_draftjs
 from playwright._impl._errors import TimeoutError
 from playwright.sync_api import sync_playwright
+
+from api.ai.translator import google_translator
 
 
 def remove_lines_before_header(markdown_string):
@@ -21,6 +24,8 @@ def remove_lines_before_header(markdown_string):
 
 
 class WebDownloader:
+    translator = google_translator
+
     def download(self, url: str) -> dict[str, Any]:
         with sync_playwright() as playwright:
             try:
@@ -38,7 +43,15 @@ class WebDownloader:
         raw_markdown_string = html2text.handle(result)
         markdown_string = remove_lines_before_header(raw_markdown_string)
 
-        html_string = markdown.markdown(markdown_string)
+        # Translate the markdown string
+        # We convert \n to <br> before translating and convert it back
+        # because google translator doesn't respect the line break character \n
+        language = translation.get_language().split("-")[0]
+        translated_markdown_string = self.translator.translate(
+            markdown_string.replace("\n", "<br>"), language
+        ).replace("<br>", "\n")
+
+        html_string = markdown.markdown(translated_markdown_string)
         content_state = html_to_draftjs(html_string)
 
         return content_state

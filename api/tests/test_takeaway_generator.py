@@ -85,7 +85,7 @@ class TestTakeawayGenerator(APITestCase):
             }
         }
 
-        generate_takeaways_with_questions(self.note)
+        generate_takeaways_with_questions(self.note, self.user)
         expected_mocked_invoke_arguments = (
             {
                 "text": (

@@ -9,3 +9,4 @@ note/test
 credentials
 .vscode
 celerybeat-schedule
+experiments

@@ -12,8 +12,10 @@ from pydantic import BaseModel, Field
 from sklearn.cluster import HDBSCAN
 
 from api.ai import config
+from api.ai.generators.utils import token_tracker
 from api.models.project import Project
 from api.models.takeaway import Takeaway
+from api.models.user import User
 
 
 def get_chain():
@@ -39,7 +41,7 @@ def get_chain():
     return chain
 
 
-def cluster_project(project: Project):
+def cluster_project(project: Project, created_by: User):
     current_time = datetime.datetime.now().astimezone(datetime.timezone.utc)
     cutoff = current_time - datetime.timedelta(weeks=1)
     embedder = OpenAIEmbeddings()
@@ -73,7 +75,8 @@ def cluster_project(project: Project):
     )
 
     chain = get_chain()
-    output = chain.invoke({"clusters": text})
+    with token_tracker(project, project, "cluster-takeaways", created_by):
+        output = chain.invoke({"clusters": text})
     key_themes = [
         {
             "title": cluster_topic["topic"],

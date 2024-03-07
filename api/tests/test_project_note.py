@@ -10,6 +10,7 @@ from rest_framework.test import APITestCase
 from api.models.keyword import Keyword
 from api.models.note import Note
 from api.models.project import Project
+from api.models.usage.transciption import TranscriptionUsage
 from api.models.user import User
 from api.models.workspace import Workspace
 
@@ -197,14 +198,21 @@ class TestProjectNoteListCreateView(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         mocked_analyze.assert_called_once()
 
-    @unittest.expectedFailure
     def test_user_create_report_exceed_usage_minutes(self):
-        Note.objects.create(
+        note = Note.objects.create(
             title="Use up all usage minutes.",
             project=self.project,
             author=self.user,
-            file_duration_seconds=61 * 60,
         )
+        TranscriptionUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            note=note,
+            created_by=self.user,
+            value=10 * 60 * 60,
+            cost=0.0001,
+        )
+
         data = {
             "title": "Attempt to add one more report",
             "organizations": [
@@ -213,10 +221,18 @@ class TestProjectNoteListCreateView(APITestCase):
                 }
             ],
         }
-        self.client.force_authenticate(self.user)
-        url = f"/api/projects/{self.project.id}/reports/"
-        response = self.client.post(url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        with (
+            open("api/tests/files/sample-3s.mp3", "rb") as file,
+            tempfile.NamedTemporaryFile("r+", suffix=".json") as data_file,
+        ):
+            json.dump(data, data_file)
+            data_file.seek(0)
+
+            self.client.force_authenticate(self.user)
+            url = f"/api/projects/{self.project.id}/reports/"
+            payload = {"file": file, "data": data_file}
+            response = self.client.post(url, data=payload, format="multipart")
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     @unittest.expectedFailure
     def test_user_create_report_exceed_usage_tokens(self):
@@ -224,7 +240,7 @@ class TestProjectNoteListCreateView(APITestCase):
             title="Use up all usage minutes.",
             project=self.project,
             author=self.user,
-            analyzing_tokens=51_000,
+            # analyzing_tokens=51_000,
         )
         data = {
             "title": "Attempt to add one more report",

@@ -1,5 +1,6 @@
 from rest_framework import exceptions, serializers
 
+from api.models.block import Block
 from api.models.insight import Insight
 from api.models.note import Note
 from api.models.takeaway import Takeaway
@@ -67,7 +68,7 @@ class TakeawaySerializer(serializers.ModelSerializer):
         return super().update(takeaway, validated_data)
 
 
-class InsightTakeawaySerializer(serializers.Serializer):
+class TakeawayIDsSerializer(serializers.Serializer):
     id = serializers.CharField()
 
     def validate_id(self, value):
@@ -79,7 +80,7 @@ class InsightTakeawaySerializer(serializers.Serializer):
 
 
 class InsightTakeawaysSerializer(serializers.Serializer):
-    takeaways = InsightTakeawaySerializer(many=True)
+    takeaways = TakeawayIDsSerializer(many=True)
 
     def create(self, validated_data):
         insight: Insight = self.context["insight"]
@@ -88,8 +89,7 @@ class InsightTakeawaysSerializer(serializers.Serializer):
         takeaways_to_add = Takeaway.objects.filter(id__in=takeaway_ids).exclude(
             insights=insight
         )
-        for takeaway in takeaways_to_add:
-            insight.takeaways.add(takeaway)
+        insight.takeaways.add(*takeaways_to_add)
         return {"takeaways": takeaways_to_add}
 
     def delete(self):
@@ -97,6 +97,36 @@ class InsightTakeawaysSerializer(serializers.Serializer):
         takeaway_ids = {takeaway["id"] for takeaway in self.validated_data["takeaways"]}
         # Only remove takeaways that are in insight
         takeaways_to_remove = insight.takeaways.filter(id__in=takeaway_ids)
-        for takeaway in takeaways_to_remove:
-            insight.takeaways.remove(takeaway)
+        insight.takeaways.remove(*takeaways_to_remove)
+        self.instance = {"takeaways": takeaways_to_remove}
+
+
+class BlockTakeawaysSerializer(serializers.Serializer):
+    takeaways = TakeawayIDsSerializer(many=True)
+
+    def validate(self, data):
+        block = self.context["block"]
+        if block.type != Block.Type.TAKEAWAYS:
+            raise exceptions.ValidationError(
+                "Can only add takeaways to block of type 'Takeaways'. "
+                f"The current block is of type '{block.type}'."
+            )
+        return data
+
+    def create(self, validated_data):
+        block: Block = self.context["block"]
+        takeaway_ids = {takeaway["id"] for takeaway in validated_data["takeaways"]}
+        # Skip adding takeaways that are already in the block
+        takeaways_to_add = Takeaway.objects.filter(id__in=takeaway_ids).exclude(
+            blocks=block
+        )
+        block.takeaways.add(*takeaways_to_add)
+        return {"takeaways": takeaways_to_add}
+
+    def delete(self):
+        block: Block = self.context["block"]
+        takeaway_ids = {takeaway["id"] for takeaway in self.validated_data["takeaways"]}
+        # Only remove takeaways that are in insight
+        takeaways_to_remove = block.takeaways.filter(id__in=takeaway_ids)
+        block.takeaways.remove(*takeaways_to_remove)
         self.instance = {"takeaways": takeaways_to_remove}

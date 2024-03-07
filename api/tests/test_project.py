@@ -4,6 +4,8 @@ from rest_framework.test import APITestCase
 
 from api.models.note import Note
 from api.models.project import Project
+from api.models.usage.token import TokenUsage
+from api.models.usage.transciption import TranscriptionUsage
 from api.models.user import User
 from api.models.workspace import Workspace
 
@@ -30,13 +32,28 @@ class TestProjectRetrieveUpdateDeleteView(APITestCase):
         """
         Test if the usage data exists in the endpoint response payload.
         """
-        Note.objects.create(
+        note = Note.objects.create(
             title="note",
             project=self.project,
             author=self.user,
-            file_duration_seconds=118,
-            analyzing_tokens=150,
             file_size=1000,
+        )
+        TokenUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            content_object=note,
+            action="test-usage",
+            created_by=self.user,
+            value=150,
+            cost=0.0001,
+        )
+        TranscriptionUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            note=note,
+            created_by=self.user,
+            value=118,
+            cost=0.0001,
         )
         self.client.force_authenticate(self.user)
         response = self.client.get(self.url)
@@ -53,21 +70,51 @@ class TestProjectRetrieveUpdateDeleteView(APITestCase):
         Test usage calculation sum usage minutes and usage tokens
         over multiple notes properly.
         """
-        Note.objects.create(
+        note1 = Note.objects.create(
             title="note",
             project=self.project,
             author=self.user,
-            file_duration_seconds=118,
-            analyzing_tokens=150,
             file_size=500,
         )
-        Note.objects.create(
+        note2 = Note.objects.create(
             title="note",
             project=self.project,
             author=self.user,
-            file_duration_seconds=435,
-            analyzing_tokens=542,
             file_size=1000,
+        )
+        TokenUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            content_object=note1,
+            action="test-usage",
+            created_by=self.user,
+            value=150,
+            cost=0.0001,
+        )
+        TokenUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            content_object=note2,
+            action="test-usage",
+            created_by=self.user,
+            value=542,
+            cost=0.0001,
+        )
+        TranscriptionUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            note=note1,
+            created_by=self.user,
+            value=118,
+            cost=0.0001,
+        )
+        TranscriptionUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            note=note1,
+            created_by=self.user,
+            value=435,
+            cost=0.0001,
         )
         self.client.force_authenticate(self.user)
         response = self.client.get(self.url)
@@ -86,24 +133,54 @@ class TestProjectRetrieveUpdateDeleteView(APITestCase):
         """
         Test usage calculation can handle notes in multiple projects.
         """
-        Note.objects.create(
+        note1 = Note.objects.create(
             title="note",
             project=self.project,
             author=self.user,
-            file_duration_seconds=118,
-            analyzing_tokens=150,
             file_size=500,
         )
         another_project = Project.objects.create(
             name="project", workspace=self.project.workspace
         )
-        Note.objects.create(
+        note2 = Note.objects.create(
             title="note",
             project=another_project,
             author=self.user,
-            file_duration_seconds=435,
-            analyzing_tokens=542,
             file_size=1000,
+        )
+        TokenUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            content_object=note1,
+            action="test-usage",
+            created_by=self.user,
+            value=150,
+            cost=0.0001,
+        )
+        TokenUsage.objects.create(
+            workspace=self.project.workspace,
+            project=another_project,
+            content_object=note2,
+            action="test-usage",
+            created_by=self.user,
+            value=542,
+            cost=0.0001,
+        )
+        TranscriptionUsage.objects.create(
+            workspace=self.project.workspace,
+            project=self.project,
+            note=note1,
+            created_by=self.user,
+            value=118,
+            cost=0.0001,
+        )
+        TranscriptionUsage.objects.create(
+            workspace=self.project.workspace,
+            project=another_project,
+            note=note2,
+            created_by=self.user,
+            value=435,
+            cost=0.0001,
         )
         self.client.force_authenticate(self.user)
         response = self.client.get(self.url)

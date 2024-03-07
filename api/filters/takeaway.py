@@ -18,11 +18,19 @@ def users_in_scope(request):
 
     report_id = kwargs.get("report_id")
     if report_id is not None:
-        return User.objects.filter(projects__notes__id=report_id)
+        return User.objects.filter(projects__notes=report_id)
 
     insight_id = kwargs.get("insight_id")
     if insight_id is not None:
         return User.objects.filter(created_takeaways__insights=insight_id)
+
+    asset_id = kwargs.get("asset_id")
+    if asset_id is not None:
+        return User.objects.filter(projects__assets=asset_id)
+
+    block_id = kwargs.get("block_id")
+    if block_id is not None:
+        return User.objects.filter(projects__assets__blocks=block_id)
 
     return User.objects.none()
 
@@ -33,15 +41,23 @@ def tags_in_scope(request):
 
     project_id = kwargs.get("project_id")
     if project_id is not None:
-        return Tag.objects.filter(takeaways__note__project_id=project_id)
+        return Tag.objects.filter(takeaways__note__project=project_id)
 
     report_id = kwargs.get("report_id")
     if report_id is not None:
-        return Tag.objects.filter(takeaways__note_id=report_id)
+        return Tag.objects.filter(takeaways__note=report_id)
 
     insight_id = kwargs.get("insight_id")
     if insight_id is not None:
         return Tag.objects.filter(takeaways__insights=insight_id)
+
+    asset_id = kwargs.get("asset_id")
+    if asset_id is not None:
+        return Tag.objects.filter(takeaways__note__project__assets=asset_id)
+
+    block_id = kwargs.get("block_id")
+    if block_id is not None:
+        return Tag.objects.filter(takeaways__note__project__assets__blocks=block_id)
 
     return Tag.objects.none()
 
@@ -54,6 +70,18 @@ def notes_in_scope(request):
     if project_id is not None:
         return Note.objects.filter(project_id=project_id)
 
+    insight_id = kwargs.get("insight_id")
+    if insight_id is not None:
+        return Note.objects.filter(takeaways__insights=insight_id)
+
+    asset_id = kwargs.get("asset_id")
+    if asset_id is not None:
+        return Note.objects.filter(project__assets=asset_id)
+
+    block_id = kwargs.get("block_id")
+    if block_id is not None:
+        return Note.objects.filter(project__assets__blocks=block_id)
+
     return Note.objects.none()
 
 
@@ -64,6 +92,24 @@ def takeaway_types_in_scope(request):
     project_id = kwargs.get("project_id")
     if project_id is not None:
         return TakeawayType.objects.filter(takeaways__note__project_id=project_id)
+
+    report_id = kwargs.get("report_id")
+    if report_id is not None:
+        return TakeawayType.objects.filter(takeaways__note=report_id)
+
+    insight_id = kwargs.get("insight_id")
+    if insight_id is not None:
+        return TakeawayType.objects.filter(takeaways__insights=insight_id)
+
+    asset_id = kwargs.get("asset_id")
+    if asset_id is not None:
+        return TakeawayType.objects.filter(takeaways__note__project__assets=asset_id)
+
+    block_id = kwargs.get("block_id")
+    if block_id is not None:
+        return TakeawayType.objects.filter(
+            takeaways__note__project__assets__blocks=block_id
+        )
 
     return TakeawayType.objects.none()
 
@@ -90,4 +136,13 @@ class TakeawayFilter(filters.FilterSet):
 
     class Meta:
         model = Takeaway
-        fields = ["priority", "tag", "created_by", "type", "report_type"]
+        fields = ["priority", "tag", "created_by", "type", "report_type", "report_id"]
+
+
+class NoteTakeawayFilter(TakeawayFilter):
+    report_id = None
+    report_type = None
+
+    class Meta:
+        model = Takeaway
+        fields = ["priority", "tag", "created_by", "type"]
