@@ -41,6 +41,7 @@ django-storages = "==1.14.2"
 boto3 = "==1.34.30"
 django-cleanup = "==8.1.0"
 langdetect = "==1.0.9"
+django-easy-health-check = "==1.0.1"
 
 [dev-packages]
 ipykernel = "*"

@@ -64,6 +64,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "easy_health_check.middleware.HeathCheckMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -272,3 +273,12 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 DURATION_MINUTE_SINGLE_FILE = env("DURATION_MINUTE_SINGLE_FILE", cast=int)
 DURATION_MINUTE_WORKSPACE = env("DURATION_MINUTE_WORKSPACE", cast=int)
 STORAGE_GB_WORKSPACE = env("STORAGE_GB_WORKSPACE", cast=int)
+
+# Health check settings
+DJANGO_EASY_HEALTH_CHECK = {
+    "PATH": "/health/",
+    "RETURN_STATUS_CODE": 200,
+    "RETURN_BYTE_DATA": "Success",
+}
+SECURE_SSL_REDIRECT = True
+SECURE_REDIRECT_EXEMPT = [r"^health/$"]
