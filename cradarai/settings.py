@@ -64,7 +64,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "easy_health_check.middleware.HeathCheckMiddleware",
+    "easy_health_check.middleware.HealthCheckMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
