@@ -42,4 +42,5 @@ jobs:
 
       - name: Update ECS service
         run: |
-          aws ecs update-service --cluster raijin-local-ecs-cluster --service raijin-local --force-new-deployment
+          aws ecs update-service --cluster raijin-local-ecs-cluster --service raijin-local-django-service --force-new-deployment
+          aws ecs update-service --cluster raijin-local-ecs-cluster --service raijin-local-celery-worker-service --force-new-deployment
