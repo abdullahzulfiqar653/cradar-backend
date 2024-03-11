@@ -17,16 +17,21 @@ def summarize_projects():
 
 @shared_task
 def analyze_new_note(note_id, user_id):
-    print("analyzing new note")
+    print(f"analyzing new note {note_id} by {user_id}")
     analyzer = NewNoteAnalyzer()
+    print("Debug: Done initializing analyzer")
 
     note = Note.objects.select_related("project__workspace").get(id=note_id)
+    print("Debug: Done selecting the note")
     note.is_analyzing = True
     note.save()
+    print("Debug: Done updating the note")
 
     user = User.objects.get(id=user_id)
+    print("Debug: Done getting the user")
 
     with translation.override(note.project.language):
+        print("Debug: Starting analyzer")
         analyzer.analyze(note, user)
 
     note.is_analyzing = False
