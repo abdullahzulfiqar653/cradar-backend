@@ -21,7 +21,14 @@ def analyze_new_note(note_id, user_id):
     analyzer = NewNoteAnalyzer()
     print("Debug: Done initializing analyzer")
 
-    note = Note.objects.select_related("project__workspace").get(id=note_id)
+    try:
+        note = Note.objects.select_related("project__workspace").get(id=note_id)
+    except Exception as e:
+        print("Debug: Failed to connect to db")
+        import traceback
+
+        traceback.print_exc()
+        raise e
     print("Debug: Done selecting the note")
     note.is_analyzing = True
     note.save()
