@@ -2,12 +2,9 @@ import json
 
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext
-from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
+from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.chat_models import ChatOpenAI
-from langchain_community.utils.openai_functions import (
-    convert_pydantic_to_openai_function,
-)
 from pydantic.v1 import BaseModel, Field
 from tiktoken import encoding_for_model
 
@@ -58,31 +55,42 @@ def get_chain():
         takeaways: list[TakeawaySchema]
 
     llm = ChatOpenAI(model=config.model)
+    example = (
+        json.dumps(
+            {
+                "takeaways": [
+                    {
+                        "id": "322xBv9XpAbD",
+                        "tags": ["tag 1", "tag 2"],
+                    },
+                    {
+                        "id": "m84P4opD89At",
+                        "tags": ["tag 1", "tag 3"],
+                    },
+                ]
+            },
+        )
+        .replace("{", "{{")
+        .replace("}", "}}")
+    )
     prompt = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
                 gettext(
-                    "Generate a list of tags for each string in the provided list. "
+                    "Assign a list of tags for each string in the provided list. "
                     "Tags should succinctly describe "
                     "the content or topic of each string. "
-                    "Ensure that the tags are relevant and descriptive."
+                    "Ensure that the tags are relevant and descriptive. "
+                    "Output the response in JSON format such as the following example. "
+                    f"Example: {example}"
                 ),
             ),
             ("human", "{takeaways}"),
         ],
     )
-    function = convert_pydantic_to_openai_function(TakeawayListSchema)
-    function_call = {"name": function["name"]}
-    parser = PydanticOutputFunctionsParser(pydantic_schema=TakeawayListSchema)
-    chain = (
-        prompt
-        | llm.bind(
-            functions=[function],
-            function_call=function_call,
-        )
-        | parser
-    )
+    parser = PydanticOutputParser(pydantic_object=TakeawayListSchema)
+    chain = prompt | llm.bind(response_format={"type": "json_object"}) | parser
     return chain
 
 

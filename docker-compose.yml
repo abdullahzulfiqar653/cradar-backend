@@ -31,11 +31,6 @@ services:
       - frontend/.env.local
     ports:
       - "3000:4173"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4173"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   nginx:
     profiles:

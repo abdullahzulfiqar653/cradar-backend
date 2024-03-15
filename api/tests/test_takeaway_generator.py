@@ -1,6 +1,5 @@
-import json
 import logging
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rest_framework.test import APITestCase
 
@@ -55,53 +54,65 @@ class TestTakeawayGenerator(APITestCase):
         self.note.questions.add(self.question1, self.question2)
         return super().setUp()
 
-    @patch("langchain.chains.base.Chain.invoke")
-    def test_generate_takeaways(self, mocked_invoke):
-        mocked_invoke.return_value = {
-            "function": {
-                "takeaways": [
-                    {
-                        "question_id": self.question1.id,
-                        "topic": "'Answer 1.1 topic'",
-                        "title": "'Answer 1.1 title'",
-                        "significance": "'Answer 1.1 significance'",
-                        "type": "Answer 1.1 type",
-                    },
-                    {
-                        "question_id": self.question1.id,
-                        "topic": "'Answer 1.2 topic'",
-                        "title": "'Answer 1.2 title'",
-                        "significance": "'Answer 1.2 significance'",
-                        "type": "Answer 1.2 type",
-                    },
-                    {
-                        "question_id": self.question2.id,
-                        "topic": "'Answer 2 topic'",
-                        "title": "'Answer 2 title'",
-                        "significance": "'Answer 2 significance'",
-                        "type": "Answer 2 type",
-                    },
-                ]
-            }
-        }
+    @patch("langchain_core.runnables.base.RunnableSequence.invoke")
+    def test_generate_takeaways(self, mocked_invoke: MagicMock):
+        class MockedTakeawaysSchema:
+            def __init__(self, result):
+                self.result = result
+
+            def dict(self):
+                return self.result
+
+        mocked_invoke.side_effect = [
+            MockedTakeawaysSchema(
+                {
+                    "takeaways": [
+                        {
+                            "question_id": self.question1.id,
+                            "topic": "'Answer 1.1 topic'",
+                            "title": "'Answer 1.1 title'",
+                            "significance": "'Answer 1.1 significance'",
+                            "type": "Answer 1.1 type",
+                        },
+                        {
+                            "question_id": self.question1.id,
+                            "topic": "'Answer 1.2 topic'",
+                            "title": "'Answer 1.2 title'",
+                            "significance": "'Answer 1.2 significance'",
+                            "type": "Answer 1.2 type",
+                        },
+                    ]
+                }
+            ),
+            MockedTakeawaysSchema(
+                {
+                    "takeaways": [
+                        {
+                            "question_id": self.question2.id,
+                            "topic": "'Answer 2 topic'",
+                            "title": "'Answer 2 title'",
+                            "significance": "'Answer 2 significance'",
+                            "type": "Answer 2 type",
+                        },
+                    ]
+                }
+            ),
+        ]
 
         generate_takeaways_with_questions(self.note, self.user)
-        expected_mocked_invoke_arguments = (
+        self.assertEqual(
+            mocked_invoke.call_args_list[0].args[0],
             {
-                "text": (
-                    "This is a sample text only.\n"
-                    "This is a sample text in the second block."
-                ),
-                "questions": json.dumps(
-                    [
-                        {"id": self.question1.id, "question": self.question1.title},
-                        {"id": self.question2.id, "question": self.question2.title},
-                    ]
-                ),
+                "text": "This is a sample text only.\nThis is a sample text in the second block.",
+                "question": "Test question 1",
             },
         )
-        self.assertTupleEqual(
-            mocked_invoke.call_args.args, expected_mocked_invoke_arguments
+        self.assertEqual(
+            mocked_invoke.call_args_list[1].args[0],
+            {
+                "text": "This is a sample text only.\nThis is a sample text in the second block.",
+                "question": "Test question 2",
+            },
         )
         takeaway_titles = [takeaway.title for takeaway in self.note.takeaways.all()]
         expected_takeaway_titles = [

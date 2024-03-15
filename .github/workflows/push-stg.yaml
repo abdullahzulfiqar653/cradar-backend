@@ -37,6 +37,18 @@ jobs:
             docker-compose stop
             docker-compose up -d
 
+      - name: setting crontab to auto restart unhealthy containers
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.IP_ADDR_RAIJIN_STG }}
+          username: ubuntu
+          key: ${{ secrets.DEPLOY_KEY_RAIJIN_STG }}
+          port: 22
+          script: |
+            echo "* * * * * docker ps -q -f health=unhealthy | xargs --no-run-if-empty docker restart" > /tmp/cronjob.tmp
+            crontab /tmp/cronjob.tmp
+            rm /tmp/cronjob.tmp
+
   deploy-kizunna-stg:
     runs-on: ubuntu-latest
 
@@ -67,3 +79,15 @@ jobs:
             docker-compose build backend
             docker-compose stop
             docker-compose up -d
+
+      - name: setting crontab to auto restart unhealthy containers
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.IP_ADDR_KIZUNNA_STG }}
+          username: ubuntu
+          key: ${{ secrets.DEPLOY_KEY_KIZUNNA_STG }}
+          port: 22
+          script: |
+            echo "* * * * * docker ps -q -f health=unhealthy | xargs --no-run-if-empty docker restart" > /tmp/cronjob.tmp
+            crontab /tmp/cronjob.tmp
+            rm /tmp/cronjob.tmp

@@ -10,7 +10,7 @@ def get_instance(queryset, instance_id):
     return instance
 
 
-class HasWorkspaceProjectPermission(permissions.BasePermission):
+class InProjectOrWorkspace(permissions.BasePermission):
     """
     To check if the user has permission to access the workspace/project of the resource.
 
@@ -126,3 +126,12 @@ class HasWorkspaceProjectPermission(permissions.BasePermission):
                 raise exceptions.NotFound
         else:
             return True
+
+
+class IsWorkspaceOwner(InProjectOrWorkspace):
+    def has_permission(self, request, view):
+        workspace, project = self.get_workspace_project(request, view)
+        if hasattr(workspace, "owned_by") and workspace.owned_by == request.user:
+            return True
+        else:
+            return False

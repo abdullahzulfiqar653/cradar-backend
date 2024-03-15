@@ -36,7 +36,9 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        return self.request.project.notes.annotate(
+        return self.request.project.notes.prefetch_related(
+            "questions", "author", "organizations", "keywords"
+        ).annotate(
             takeaway_count=Count("takeaways"),
         )
 

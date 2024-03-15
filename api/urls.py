@@ -42,6 +42,7 @@ from api.views.project.project_tag import ProjectTagListView
 from api.views.project.project_takeaway import ProjectTakeawayListView
 from api.views.project.project_takeaway_type import ProjectTakeawayTypeListView
 from api.views.project.project_user import ProjectUserListView
+from api.views.project.project_user_delete import ProjectUserDeleteView
 from api.views.takeaway.takeaway import TakeawayRetrieveUpdateDeleteView
 from api.views.takeaway.takeaway_tag import (
     TakeawayTagCreateView,
@@ -129,6 +130,11 @@ urlpatterns = [
         "projects/<str:project_id>/users/",
         ProjectUserListView.as_view(),
         name="project-user-list",
+    ),
+    path(
+        "projects/<str:project_id>/users/delete/",
+        ProjectUserDeleteView.as_view(),
+        name="project-user-delete",
     ),
     path(
         "projects/<str:project_id>/reports/",

@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 import environ
+import sentry_sdk
 
 env = environ.Env()
 # reading .env file
@@ -78,7 +79,7 @@ MIDDLEWARE = [
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PERMISSION_CLASSES": [
-        "api.permissions.HasWorkspaceProjectPermission",
+        "api.permissions.InProjectOrWorkspace",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -90,6 +91,7 @@ REST_FRAMEWORK = {
     ],
     "NON_FIELD_ERRORS_KEY": "detail",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -251,6 +253,14 @@ LOGGING = {
     },
 }
 
+sentry_sdk.init(
+    dsn=env("SENTRY_DSN", default=""),
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+    enable_tracing=True,
+    environment=env("SENTRY_ENV"),
+)
+
 INVITATION_LINK_TIMEOUT = 3 * 24 * 60 * 60  # 3 days
 
 # Optional: You can also set a different location for your static files within the bucket.
@@ -280,5 +290,3 @@ DJANGO_EASY_HEALTH_CHECK = {
     "RETURN_STATUS_CODE": 200,
     "RETURN_BYTE_DATA": "Success",
 }
-SECURE_SSL_REDIRECT = True
-SECURE_REDIRECT_EXEMPT = [r"^health/$"]

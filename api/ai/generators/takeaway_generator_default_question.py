@@ -11,6 +11,7 @@ from pydantic.v1 import BaseModel, Field
 
 from api.ai import config
 from api.ai.generators.utils import ParserErrorCallbackHandler, token_tracker
+from api.ai.translator import google_translator
 from api.models.note import Note
 from api.models.takeaway import Takeaway
 from api.models.takeaway_type import TakeawayType
@@ -108,7 +109,10 @@ def generate_takeaways_default_question(note: Note, created_by: User):
     # Post processing the LLM response
     generated_takeaways = [
         {
-            "title": f'{takeaway["topic"]} - {takeaway["title"]}: {takeaway["significance"]}',
+            "title": google_translator.translate(
+                f'{takeaway["topic"]} - {takeaway["title"]}: {takeaway["significance"]}',
+                note.project.language,
+            ),
             "type": takeaway["type"],
         }
         for output in outputs
