@@ -5,46 +5,39 @@ on:
     branches:
     - dev
 
+env:
+  ECR_REPO_ROOT: ${{ secrets.ECR_REPO_ROOT }}
+  ECR_REPO_NAME: backend
+
 jobs:
-  deploy-kizunna-dev:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: rsync kizunna
-        uses: burnett01/rsync-deployments@5.1
-        with:
-          switches: -avzr --delete --exclude="frontend" --exclude="media" --exclude="db" --exclude=".env" --exclude="**/__pycache__" --exclude="credentials"
-          path: .
-          remote_path: /home/ubuntu/kizunna-backend
-          remote_host: ${{ vars.IP_ADDR_KIZUNNA_DEV }}
-          remote_user: ubuntu
-          remote_key: ${{ secrets.DEPLOY_KEY_KIZUNNA_DEV }}
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+  
+      - name: Configure AWS credentials
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ap-southeast-1 # Change to your desired region
 
-      - name: running kizunna
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ vars.IP_ADDR_KIZUNNA_DEV }}
-          username: ubuntu
-          key: ${{ secrets.DEPLOY_KEY_KIZUNNA_DEV }}
-          port: 22
-          script: |
-            cd /home/ubuntu/kizunna-backend
-            docker image prune -f
-            docker builder prune -af
-            docker-compose build backend
-            docker-compose stop
-            docker-compose up -d
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin $ECR_REPO_ROOT
+  
+      - name: Build and tag Docker image
+        run: |
+          docker build -t $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }} -t $ECR_REPO_ROOT/$ECR_REPO_NAME:kizunna-dev .
+          docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }}
+          docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:kizunna-dev
 
-      - name: setting crontab to auto restart unhealthy containers
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ vars.IP_ADDR_KIZUNNA_DEV }}
-          username: ubuntu
-          key: ${{ secrets.DEPLOY_KEY_KIZUNNA_DEV }}
-          port: 22
-          script: |
-            echo "* * * * * docker ps -q -f health=unhealthy | xargs --no-run-if-empty docker restart" > /tmp/cronjob.tmp
-            crontab /tmp/cronjob.tmp
-            rm /tmp/cronjob.tmp
+      - name: Update ECS service
+        run: |
+          aws ecs update-service --cluster kizunna-dev-ecs-cluster --service kizunna-dev-django-service --force-new-deployment
+          aws ecs update-service --cluster kizunna-dev-ecs-cluster --service kizunna-dev-celery-worker-service --force-new-deployment
