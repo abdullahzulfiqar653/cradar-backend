@@ -75,7 +75,7 @@ def get_chain():
             (
                 "system",
                 gettext(
-                    "Extract takeaways based on the question from the text.\n"
+                    "Extract takeaways from the text based on the question below.\n"
                     "Separate different ideas into each takeaway, "
                     "each takeaway should convey a single idea only.\n"
                     "Each takeaway should contain a topic, a title, "
@@ -84,12 +84,14 @@ def get_chain():
                     "Schema:\n"
                     f"{schema}\n\n"
                     "For example, the output should be the following:\n"
-                    f"{example}"
+                    f"{example}\n\n"
+                    "Question:\n"
+                    "{question}\n\n"
                 ),
             ),
             (
                 "human",
-                gettext("Question: {question}\n\nText: \n{text}"),
+                gettext("\nText: \n{text}"),
             ),
         ]
     )
