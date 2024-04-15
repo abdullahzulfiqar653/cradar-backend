@@ -1,0 +1,33 @@
+FROM nikolaik/python-nodejs:python3.10-nodejs21
+
+USER root
+# Update and install required packages
+RUN apt-get update && apt-get install gcc g++ git make pipx -y
+
+ENV LANGFLOW_HOME=/home/pn/langflow \
+    PATH=/root/.local/bin:$PATH
+ENV LANGFLOW_DATABASE_URL=sqlite:////home/pn/langflow.db
+
+# Clone the langflow repository and switch to the dev branch
+ADD https://api.github.com/repos/logspace-ai/langflow/git/refs/heads/db version.json
+RUN git clone https://github.com/logspace-ai/langflow.git $LANGFLOW_HOME \
+    && cd $LANGFLOW_HOME \
+    && git fetch --all --tags --prune \
+    && git checkout v1.0.0a21
+
+# Copy the code into the container
+RUN chown -R pn:pn $LANGFLOW_HOME
+
+USER pn
+
+WORKDIR $LANGFLOW_HOME
+
+# Create logs directory
+RUN mkdir logs && chmod 777 logs
+RUN pipx install poetry
+
+RUN make install_frontend && make build_frontend && make install_backend
+
+RUN pip install openai
+
+CMD ["make", "start", "host=0.0.0.0", "port=7860", "log_level=debug", "path=/home/pn/langflow/src/backend/base/langflow/frontend"]
