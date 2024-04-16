@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install gcc g++ git make pipx -y
 ENV LANGFLOW_HOME=/home/pn/langflow \
     PATH=/root/.local/bin:$PATH
 ENV LANGFLOW_DATABASE_URL=sqlite:////home/pn/langflow.db
+ENV LANGFLOW_COMPONENTS_PATH=/home/pn/langflow/components
 
 # Clone the langflow repository and switch to the dev branch
 ADD https://api.github.com/repos/logspace-ai/langflow/git/refs/heads/db version.json
@@ -29,5 +30,7 @@ RUN pipx install poetry
 RUN make install_frontend && make build_frontend && make install_backend
 
 RUN pip install openai
+
+COPY ./components /home/pn/langflow/components
 
 CMD ["make", "start", "host=0.0.0.0", "port=7860", "log_level=debug", "path=/home/pn/langflow/src/backend/base/langflow/frontend"]
