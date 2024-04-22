@@ -132,3 +132,17 @@ class ExistingNoteAnalyzer(NewNoteAnalyzer):
             print("========> Start summarizing")
             self.summarize(note, created_by)
             print("========> End analyzing")
+
+
+class TranscribeOnlyAnalyzer(NewNoteAnalyzer):
+    def analyze(self, note: Note, created_by: User):
+        with translation.override(note.project.language):
+            print("========> Start transcribing")
+            start = time()
+            if note.file:
+                self.transcribe(note, created_by)
+            elif note.url:
+                self.download(note)
+            end = time()
+            print(f"Elapsed time: {end - start} seconds")
+            print("========> End analyzing")

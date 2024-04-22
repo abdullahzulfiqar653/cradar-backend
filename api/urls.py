@@ -33,6 +33,7 @@ from api.views.note.note_tag import NoteTagListView
 from api.views.note.note_tag_generate import NoteTagGenerateView
 from api.views.note.note_takeaway import NoteTakeawayListCreateView
 from api.views.note.note_takeaway_type import NoteTakeawayTypeListView
+from api.views.note.note_transcribe import NoteTranscribeCreateView
 from api.views.note_template import NoteTemplateRetrieveUpdateDestroyView
 from api.views.note_template_question import NoteTemplateQuestionListView
 from api.views.project.chart.note import ChartNoteCreateView
@@ -128,6 +129,11 @@ urlpatterns = [
         "reports/<str:report_id>/extract/",
         NoteExtractCreateView.as_view(),
         name="note-extract",
+    ),
+    path(
+        "reports/<str:report_id>/transcribe/",
+        NoteTranscribeCreateView.as_view(),
+        name="note-transcribe",
     ),
     path(
         "reports/<str:report_id>/questions/",

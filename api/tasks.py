@@ -3,7 +3,11 @@ from contextlib import contextmanager
 
 from celery import shared_task
 
-from api.ai.analyzer.note_analyzer import ExistingNoteAnalyzer, NewNoteAnalyzer
+from api.ai.analyzer.note_analyzer import (
+    ExistingNoteAnalyzer,
+    NewNoteAnalyzer,
+    TranscribeOnlyAnalyzer,
+)
 from api.ai.analyzer.project_summarizer import ProjectSummarizer
 from api.ai.generators.takeaway_generator_with_questions import (
     generate_takeaways_with_questions,
@@ -72,6 +76,20 @@ def analyze_existing_note(note_id, user_id):
     user = User.objects.get(id=user_id)
     with is_analyzing(note):
         analyzer = ExistingNoteAnalyzer()
+        analyzer.analyze(note, user)
+
+
+@shared_task
+def transcribe_note(note_id, user_id):
+    print(f"analyzing existing note {note_id} by {user_id}")
+
+    note = Note.objects.select_related("project__workspace").get(id=note_id)
+    if note.is_analyzing:
+        return
+
+    user = User.objects.get(id=user_id)
+    with is_analyzing(note):
+        analyzer = TranscribeOnlyAnalyzer()
         analyzer.analyze(note, user)
 
 
