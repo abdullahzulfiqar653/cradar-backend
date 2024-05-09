@@ -14,6 +14,7 @@ class NoteTemplateSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
+            "project",
         ]
 
 

@@ -70,14 +70,14 @@ class TestTakeawayGenerator(APITestCase):
                         {
                             "question_id": self.question1.id,
                             "topic": "'Answer 1.1 topic'",
-                            "title": "'Answer 1.1 title'",
+                            "insight": "'Answer 1.1 title'",
                             "significance": "'Answer 1.1 significance'",
                             "type": "Answer 1.1 type",
                         },
                         {
                             "question_id": self.question1.id,
                             "topic": "'Answer 1.2 topic'",
-                            "title": "'Answer 1.2 title'",
+                            "insight": "'Answer 1.2 title'",
                             "significance": "'Answer 1.2 significance'",
                             "type": "Answer 1.2 type",
                         },
@@ -90,7 +90,7 @@ class TestTakeawayGenerator(APITestCase):
                         {
                             "question_id": self.question2.id,
                             "topic": "'Answer 2 topic'",
-                            "title": "'Answer 2 title'",
+                            "insight": "'Answer 2 title'",
                             "significance": "'Answer 2 significance'",
                             "type": "Answer 2 type",
                         },

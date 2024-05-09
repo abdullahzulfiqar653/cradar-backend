@@ -9,6 +9,7 @@ from api.serializers.note_template import (
 
 class ProjectNoteTemplateListCreateView(generics.ListCreateAPIView):
     queryset = NoteTemplate.objects.none()
+    search_fields = ["title", "questions__title"]
 
     def get_queryset(self):
         public_note_templates = NoteTemplate.objects.filter(project__isnull=True)

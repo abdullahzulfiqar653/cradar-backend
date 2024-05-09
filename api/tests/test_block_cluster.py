@@ -67,7 +67,9 @@ class TestBlockClusterCreateView(APITestCase):
             block=self.theme_block,
         )
 
-    @patch("api.ai.generators.block_clusterer.cluster_block")
+    # We need to patch where it is called, not where it is defined.
+    # Ref: https://stackoverflow.com/a/71534298/9577282
+    @patch("api.views.block.block_cluster.cluster_block")
     def test_user_call_theme_cluster(self, mocked_cluster_block):
         url = f"/api/blocks/{self.theme_block.id}/cluster/"
         self.client.force_authenticate(self.user)

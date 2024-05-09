@@ -1,6 +1,7 @@
 import logging
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -37,11 +38,13 @@ class TestDemoGenerateTakeawaysCreateView(APITestCase):
                 title="Takeaway 1 title",
                 type=takeaway_type,
                 created_by=self.user,
+                vector=np.random.rand(1536),
             )
             note.takeaways.create(
                 title="Takeaway 2 title",
                 type=takeaway_type,
                 created_by=self.user,
+                vector=np.random.rand(1536),
             )
 
         mocked_invoke.side_effect = side_effect

@@ -49,11 +49,13 @@ class TestProjectNoteListCreateView(APITestCase):
                 "id": self.public_note_template.id,
                 "title": self.public_note_template.title,
                 "description": self.public_note_template.description,
+                "project": None,
             },
             {
                 "id": self.project_note_template.id,
                 "title": self.project_note_template.title,
                 "description": self.project_note_template.description,
+                "project": self.project.id,
             },
         ]
         self.assertCountEqual(response.json(), expected_response)
@@ -110,6 +112,7 @@ class TestProjectNoteListCreateView(APITestCase):
                 "id": self.public_note_template.id,
                 "title": self.public_note_template.title,
                 "description": self.public_note_template.description,
+                "project": None,
             },
         ]
         self.assertCountEqual(response.json(), expected_response)

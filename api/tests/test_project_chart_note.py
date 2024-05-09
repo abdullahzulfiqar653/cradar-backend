@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from rest_framework import status
@@ -69,6 +70,10 @@ class TestSavedTakeawayView(APITestCase):
         response = self.client.post(url, data=data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+        # Get the first date of the current month
+        today = datetime.date.today()
+        first_date_of_month = today.replace(day=1)
+
         expected_data = [
             {
                 "type": "",
@@ -79,7 +84,7 @@ class TestSavedTakeawayView(APITestCase):
                 "author_first_name": "",
                 "author_last_name": "",
                 "keyword": None,
-                "created_at_month": "2024-04-01T00:00:00Z",
+                "created_at_month": first_date_of_month.isoformat() + "T00:00:00Z",
                 "report_distinct_count": 1,
             },
             {
@@ -91,7 +96,7 @@ class TestSavedTakeawayView(APITestCase):
                 "author_first_name": "",
                 "author_last_name": "",
                 "keyword": "keyword",
-                "created_at_month": "2024-04-01T00:00:00Z",
+                "created_at_month": first_date_of_month.isoformat() + "T00:00:00Z",
                 "report_distinct_count": 1,
             },
         ]
