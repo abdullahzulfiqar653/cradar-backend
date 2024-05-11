@@ -15,6 +15,12 @@ class NoteTemplate(models.Model):
     questions = models.ManyToManyField(
         Question, related_name="note_templates", through="api.NoteTemplateQuestion"
     )
+    type = models.ForeignKey(
+        "api.NoteTemplateType",
+        on_delete=models.SET_NULL,
+        related_name="note_templates",
+        null=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

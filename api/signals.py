@@ -5,6 +5,7 @@ from django.dispatch import receiver
 from api.models.keyword import Keyword
 from api.models.note import Note
 from api.models.note_template import NoteTemplate
+from api.models.note_template_type import NoteTemplateType
 from api.models.organization import Organization
 from api.models.question import Question
 from api.models.tag import Tag
@@ -30,6 +31,12 @@ def cleanup_takeaway_types():
     TakeawayType.objects.annotate(takeaway_count=Count("takeaways")).filter(
         takeaway_count=0
     ).delete()
+
+
+def cleanup_note_template_types():
+    NoteTemplateType.objects.annotate(
+        note_template_count=Count("note_templates")
+    ).filter(note_template_count=0).delete()
 
 
 def cleanup_questions():
@@ -73,3 +80,4 @@ def note_template_questions_changed(
 @receiver(post_delete, sender=NoteTemplate)
 def post_delete_note_template(sender, instance, **kwargs):
     cleanup_questions()
+    cleanup_note_template_types()

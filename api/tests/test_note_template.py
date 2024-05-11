@@ -54,6 +54,8 @@ class TestNoteTemplateRetrieveUpdateDestroyView(APITestCase):
             "id": "XdADHBwvrT3m",
             "title": "Iceberg Model",
             "description": "Uncover root causes of events by looking at hidden levels of abstractions.",
+            "project": None,
+            "type": None,
             "questions": [
                 {
                     "id": "3DiJs6oisr9Z",
@@ -88,6 +90,8 @@ class TestNoteTemplateRetrieveUpdateDestroyView(APITestCase):
             "id": self.project_note_template.id,
             "title": self.project_note_template.title,
             "description": self.project_note_template.description,
+            "project": self.project.id,
+            "type": None,
             "questions": [
                 {
                     "id": self.question1.id,
@@ -148,6 +152,8 @@ class TestNoteTemplateRetrieveUpdateDestroyView(APITestCase):
             "id": "XdADHBwvrT3m",
             "title": "Iceberg Model",
             "description": "Uncover root causes of events by looking at hidden levels of abstractions.",
+            "project": None,
+            "type": None,
             "questions": [
                 {
                     "id": "3DiJs6oisr9Z",

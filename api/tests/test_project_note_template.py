@@ -46,16 +46,28 @@ class TestProjectNoteListCreateView(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         expected_response = [
             {
-                "id": self.public_note_template.id,
-                "title": self.public_note_template.title,
-                "description": self.public_note_template.description,
-                "project": None,
+                "id": self.project_note_template.id,
+                "title": "project note template",
+                "description": "",
+                "project": {
+                    "id": self.project.id,
+                    "name": "project",
+                    "description": "",
+                    "workspace": {
+                        "id": self.project.workspace.id,
+                        "name": "workspace",
+                        "is_owner": True,
+                    },
+                    "language": "en",
+                },
+                "type": None,
             },
             {
-                "id": self.project_note_template.id,
-                "title": self.project_note_template.title,
-                "description": self.project_note_template.description,
-                "project": self.project.id,
+                "id": self.public_note_template.id,
+                "title": "public note template",
+                "description": "",
+                "project": None,
+                "type": None,
             },
         ]
         self.assertCountEqual(response.json(), expected_response)
@@ -113,6 +125,7 @@ class TestProjectNoteListCreateView(APITestCase):
                 "title": self.public_note_template.title,
                 "description": self.public_note_template.description,
                 "project": None,
+                "type": None,
             },
         ]
         self.assertCountEqual(response.json(), expected_response)
