@@ -44,6 +44,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://\w+\.raijin\.ai/?$",
     "http://localhost:5173",
     "http://localhost:3000",
+    "http://localhost:4173",
 ]
 FRONTEND_URL = env("FRONTEND_URL")
 
@@ -310,3 +311,9 @@ DJANGO_EASY_HEALTH_CHECK = {
 # Demo project settings
 DEMO_PROJECT_ID = env("DEMO_PROJECT_ID", default=None)
 DEMO_USER_ID = env("DEMO_USER_ID", default=None)
+
+# Google drive integration credentials
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI")
+GOOGLE_SCOPES = env("GOOGLE_SCOPES")

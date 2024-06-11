@@ -19,6 +19,15 @@ from api.views.insight.insight_takeaway import (
     InsightTakeawayDeleteView,
     InsightTakeawayListCreateView,
 )
+from api.views.integrations.googledrive.googledrive_list_files import (
+    GoogleDriveListFilesView,
+)
+from api.views.integrations.googledrive.googledrive_oauth_redirect import (
+    GoogleDriveOauthRedirectView,
+)
+from api.views.integrations.googledrive.googledrive_oauth_url import (
+    GoogleDriveOauthUrlRetrieveView,
+)
 from api.views.note.note import NoteRetrieveUpdateDeleteView
 from api.views.note.note_extract import NoteExtractCreateView
 from api.views.note.note_keyword import (
@@ -490,5 +499,20 @@ urlpatterns = [
         "password/do-reset/",
         DoPasswordResetView.as_view(),
         name="password-do-reset",
+    ),
+    path(
+        "projects/<str:project_id>/integrations/google_drive/oauth-url/",
+        GoogleDriveOauthUrlRetrieveView.as_view(),
+        name="googledrive-oauth-url",
+    ),
+    path(
+        "projects/<str:project_id>/integrations/google_drive/oauth-redirect/",
+        GoogleDriveOauthRedirectView.as_view(),
+        name="googledrive-oauth-redirect",
+    ),
+    path(
+        "projects/<str:project_id>/integrations/google_drive/files/",
+        GoogleDriveListFilesView.as_view(),
+        name="googledrive-files",
     ),
 ]

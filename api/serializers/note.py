@@ -1,11 +1,14 @@
 # note/serializers.py
 import logging
 
+import requests
+from django.core.files.base import ContentFile
 from django.db.models import Count
 from rest_framework import exceptions, serializers
 
 from api.ai.embedder import embedder
 from api.models.highlight import Highlight
+from api.models.integrations.googledrive.googledrive_user import GoogleDriveUser
 from api.models.keyword import Keyword
 from api.models.note import Note
 from api.models.organization import Organization
@@ -27,6 +30,7 @@ class NoteSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, required=False)
     summary = serializers.JSONField(required=False, default=[])
     organizations = OrganizationSerializer(many=True, required=False)
+    googledrive_file_id = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Note
@@ -53,6 +57,7 @@ class NoteSerializer(serializers.ModelSerializer):
             "file_name",
             "url",
             "sentiment",
+            "googledrive_file_id",
         ]
         read_only_fields = [
             "id",
@@ -119,8 +124,38 @@ class NoteSerializer(serializers.ModelSerializer):
         note.questions.add(*questions_to_add)
 
     def create(self, validated_data):
-        if validated_data["file"] is not None:
-            validated_data["file_size"] = validated_data["file"].size
+        google_drive_file_id = validated_data.pop("google_drive_file_id", None)
+
+        if google_drive_file_id:
+            user = self.context["request"].user
+            try:
+                gdrive_user = GoogleDriveUser.objects.get(user=user)
+            except GoogleDriveUser.DoesNotExist:
+                raise serializers.ValidationError("Google Drive account not connected")
+
+            headers = {"Authorization": f"Bearer {gdrive_user.access_token}"}
+
+            file_metadata_response = requests.get(
+                f"https://www.googleapis.com/drive/v3/files/{google_drive_file_id}",
+                headers=headers,
+            )
+            file_metadata_response.raise_for_status()
+            file_metadata = file_metadata_response.json()
+
+            file_content_response = requests.get(
+                f"https://www.googleapis.com/drive/v3/files/{google_drive_file_id}?alt=media",
+                headers=headers,
+            )
+            file_content_response.raise_for_status()
+            file_content = file_content_response.content
+
+            validated_data["title"] = file_metadata.get("name")
+            validated_data["file"] = ContentFile(
+                file_content, name=file_metadata.get("name")
+            )
+            validated_data["file_type"] = file_metadata.get("mimeType")
+            validated_data["file_size"] = file_metadata.get("size")
+
         organizations = validated_data.pop("organizations", [])
         keywords = validated_data.pop("keywords", [])
         questions = validated_data.pop("questions", [])
