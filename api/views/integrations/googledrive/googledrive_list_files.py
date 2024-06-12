@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models.integrations.googledrive.googledrive_user import GoogleDriveUser
+from api.serializers.integrations.googledrive.googledrive_files import (
+    GoogleDriveFileSerializer,
+)
 
 
 class GoogleDriveListFilesView(APIView):
@@ -19,7 +22,6 @@ class GoogleDriveListFilesView(APIView):
 
         access_token = gdrive_user.access_token
 
-        # Refresh the access token if needed
         if self.is_token_expired(access_token):
             access_token = self.refresh_access_token(gdrive_user)
 
@@ -35,7 +37,8 @@ class GoogleDriveListFilesView(APIView):
             raise ValidationError("Failed to retrieve files from Google Drive")
 
         files = response.json().get("files", [])
-        return Response(files)
+        serializer = GoogleDriveFileSerializer(files, many=True)
+        return Response(serializer.data)
 
     def is_token_expired(self, access_token):
         response = requests.get(
@@ -60,7 +63,6 @@ class GoogleDriveListFilesView(APIView):
         if "access_token" not in tokens:
             raise ValidationError("Failed to refresh access token")
 
-        # Update the access token in the database
         gdrive_user.access_token = tokens["access_token"]
         gdrive_user.save()
 
