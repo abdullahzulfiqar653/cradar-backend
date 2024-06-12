@@ -30,7 +30,7 @@ class NoteSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, required=False)
     summary = serializers.JSONField(required=False, default=[])
     organizations = OrganizationSerializer(many=True, required=False)
-    googledrive_file_id = serializers.CharField(write_only=True, required=False)
+    google_drive_file_id = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Note
@@ -57,7 +57,7 @@ class NoteSerializer(serializers.ModelSerializer):
             "file_name",
             "url",
             "sentiment",
-            "googledrive_file_id",
+            "google_drive_file_id",
         ]
         read_only_fields = [
             "id",
@@ -124,9 +124,11 @@ class NoteSerializer(serializers.ModelSerializer):
         note.questions.add(*questions_to_add)
 
     def create(self, validated_data):
-        google_drive_file_id = validated_data.pop("google_drive_file_id", None)
+        print(validated_data)
+        google_drive_file_id = validated_data.pop("google_drive_file_id", [])
 
         if google_drive_file_id:
+            print("googledrivefileid received")
             user = self.context["request"].user
             try:
                 gdrive_user = GoogleDriveUser.objects.get(user=user)
@@ -155,7 +157,7 @@ class NoteSerializer(serializers.ModelSerializer):
             )
             validated_data["file_type"] = file_metadata.get("mimeType")
             validated_data["file_size"] = file_metadata.get("size")
-
+        print("googledrivefileid not received")
         organizations = validated_data.pop("organizations", [])
         keywords = validated_data.pop("keywords", [])
         questions = validated_data.pop("questions", [])

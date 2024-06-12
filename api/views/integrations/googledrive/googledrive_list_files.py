@@ -1,4 +1,5 @@
 import requests
+from django.conf import settings
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -16,7 +17,13 @@ class GoogleDriveListFilesView(APIView):
         except GoogleDriveUser.DoesNotExist:
             raise ValidationError("Google Drive account not connected")
 
-        headers = {"Authorization": f"Bearer {gdrive_user.access_token}"}
+        access_token = gdrive_user.access_token
+
+        # Refresh the access token if needed
+        if self.is_token_expired(access_token):
+            access_token = self.refresh_access_token(gdrive_user)
+
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         response = requests.get(
             "https://www.googleapis.com/drive/v3/files", headers=headers
@@ -29,3 +36,32 @@ class GoogleDriveListFilesView(APIView):
 
         files = response.json().get("files", [])
         return Response(files)
+
+    def is_token_expired(self, access_token):
+        response = requests.get(
+            f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={access_token}"
+        )
+        if response.status_code != 200:
+            return True
+        token_info = response.json()
+        return "error" in token_info
+
+    def refresh_access_token(self, gdrive_user):
+        refresh_token = gdrive_user.refresh_token
+        data = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        }
+        response = requests.post("https://oauth2.googleapis.com/token", data=data)
+        tokens = response.json()
+
+        if "access_token" not in tokens:
+            raise ValidationError("Failed to refresh access token")
+
+        # Update the access token in the database
+        gdrive_user.access_token = tokens["access_token"]
+        gdrive_user.save()
+
+        return tokens["access_token"]

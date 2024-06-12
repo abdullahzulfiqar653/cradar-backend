@@ -45,10 +45,27 @@ class GoogleDriveOauthRedirectView(generics.CreateAPIView):
         print(f"Response content: {response.content.decode('utf-8')}")
         tokens = response.json()
 
+        if "access_token" not in tokens:
+            raise ValidationError("Failed to retrieve access token")
+
+        if "refresh_token" not in tokens:
+            try:
+                existing_user = GoogleDriveUser.objects.get(
+                    user=request.user, project_id=project_id
+                )
+                refresh_token = existing_user.refresh_token
+            except GoogleDriveUser.DoesNotExist:
+                raise ValidationError(
+                    "No refresh token found and not provided by Google"
+                )
+        else:
+            refresh_token = tokens["refresh_token"]
+
         GoogleDriveUser.objects.create(
             user=request.user,
             project_id=project_id,
             access_token=tokens["access_token"],
+            refresh_token=refresh_token,
             token_type=tokens["token_type"],
             expires_in=tokens["expires_in"],
         )

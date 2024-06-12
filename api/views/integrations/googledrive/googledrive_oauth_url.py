@@ -23,6 +23,7 @@ class GoogleDriveOauthUrlRetrieveView(generics.RetrieveAPIView):
         redirect_uri = (
             f"https://accounts.google.com/o/oauth2/auth?"
             f"client_id={settings.GOOGLE_CLIENT_ID}&response_type=code&"
-            f"scope={settings.GOOGLE_SCOPES}&redirect_uri={settings.GOOGLE_REDIRECT_URI}&state={state}"
+            f"scope={settings.GOOGLE_SCOPES}&redirect_uri={settings.GOOGLE_REDIRECT_URI}&state={state}&"
+            f"access_type=offline&prompt=consent"
         )
         return Response({"redirect_uri": redirect_uri})
