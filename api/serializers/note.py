@@ -124,11 +124,9 @@ class NoteSerializer(serializers.ModelSerializer):
         note.questions.add(*questions_to_add)
 
     def create(self, validated_data):
-        print(validated_data)
         google_drive_file_id = validated_data.pop("google_drive_file_id", [])
 
         if google_drive_file_id:
-            print("googledrivefileid received")
             user = self.context["request"].user
             try:
                 gdrive_user = GoogleDriveUser.objects.get(user=user)
@@ -157,7 +155,6 @@ class NoteSerializer(serializers.ModelSerializer):
             )
             validated_data["file_type"] = file_metadata.get("mimeType")
             validated_data["file_size"] = file_metadata.get("size")
-        print("googledrivefileid not received")
         organizations = validated_data.pop("organizations", [])
         keywords = validated_data.pop("keywords", [])
         questions = validated_data.pop("questions", [])

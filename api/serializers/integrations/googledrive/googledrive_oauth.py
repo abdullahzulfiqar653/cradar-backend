@@ -20,12 +20,10 @@ class GoogleDriveOauthRedirectSerializer(serializers.Serializer):
         code = data.get("code")
         state = data.get("state")
 
-        # Validate the state
         oauth_state = GoogleDriveOAuthState.objects.filter(state=state).first()
         if not oauth_state:
             raise serializers.ValidationError({"state": "Invalid state parameter."})
 
-        # Perform the Google OAuth request
         token_request_data = {
             "code": code,
             "client_id": settings.GOOGLE_CLIENT_ID,
@@ -51,7 +49,6 @@ class GoogleDriveOauthRedirectSerializer(serializers.Serializer):
         user = self.context["request"].user
         project_id = self.context["view"].kwargs.get("project_id")
 
-        # Check for refresh token
         if "refresh_token" not in response_data:
             try:
                 existing_user = GoogleDriveUser.objects.get(
@@ -65,7 +62,6 @@ class GoogleDriveOauthRedirectSerializer(serializers.Serializer):
         else:
             refresh_token = response_data["refresh_token"]
 
-        # Create or update the GoogleDriveUser instance
         GoogleDriveUser.objects.update_or_create(
             user=user,
             project_id=project_id,
@@ -77,6 +73,5 @@ class GoogleDriveOauthRedirectSerializer(serializers.Serializer):
             },
         )
 
-        # Delete the OAuth state after successful processing
         oauth_state = GoogleDriveOAuthState.objects.get(state=data.get("state"))
         oauth_state.delete()
