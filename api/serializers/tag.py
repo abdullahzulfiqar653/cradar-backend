@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from api.models.keyword import Keyword
 from api.models.tag import Tag
+from api.models.keyword import Keyword
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -11,21 +11,36 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ["id", "name", "color", "project",  "takeaway_count"]
         validators = []  # To skip unique together constraint
+
+    def get_project(self):
+        """
+        Helper method to retrieve the project from the context.
+        """
+        request = self.context.get('request')
+        if hasattr(request, 'tag_board'):
+            return request.tag_board.project
+        if hasattr(request, 'takeaway'):
+            return request.takeaway.note.project
+        raise serializers.ValidationError("Project information is missing in the request context.")
     
     def validate_name(self, value):
-        tag_board = self.context.get("request").tag_board
-        if tag_board.tags.filter(name=value).exists():
-            raise serializers.ValidationError(
-                    f"'{value}' tag already exists for this tag board."
-                )
+        if hasattr(self.context.get("request"), 'tag_board'):
+            tag_board = self.context.get("request").tag_board
+            if tag_board.tags.filter(name=value).exists():
+                raise serializers.ValidationError(
+                        f"'{value}' tag already exists for this tag board."
+                    )
         return value
 
     def create(self, validated_data):
-        tag_board = self.context.get("request").tag_board
-        validated_data['project'] = tag_board.project
-        tag = Tag.objects.create(**validated_data)
-        tag.tag_board.set([tag_board])
-        return tag
+        validated_data['project'] = self.get_project()
+        if hasattr(self.context.get("request"), 'tag_board'):
+            validated_data['tag_board'] = self.context.get("request").tag_board
+            return super().create(validated_data)
+        if hasattr(self.context.get("request"), 'takeaway'):
+            tag = Tag.objects.create(**validated_data)
+            self.context.get("request").takeaway.tags.add(tag)
+            return tag        
 
 
 class KeywordSerializer(serializers.ModelSerializer):
