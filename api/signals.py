@@ -21,10 +21,6 @@ def cleanup_organizations():
     ).delete()
 
 
-def cleanup_tags():
-    Tag.objects.filter(takeaway_count=0).delete()
-
-
 def cleanup_questions():
     Question.objects.annotate(note_template_count=Count("note_templates")).filter(
         note_template_count=0
@@ -41,17 +37,6 @@ def note_keywords_changed(sender, action, instance, reverse, pk_set, **kwargs):
 def post_delete_note(sender, instance, **kwargs):
     cleanup_keywords()
     cleanup_organizations()
-
-
-@receiver(m2m_changed, sender=Takeaway.tags.through)
-def takeaway_tags_changed(sender, action, instance, reverse, pk_set, **kwargs):
-    if action in ("post_remove", "post_clear"):
-        cleanup_tags()
-
-
-@receiver(post_delete, sender=Takeaway)
-def post_delete_takeaway(sender, instance, **kwargs):
-    cleanup_tags()
 
 
 @receiver(m2m_changed, sender=NoteTemplate.questions.through)

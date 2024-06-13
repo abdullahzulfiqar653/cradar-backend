@@ -2,13 +2,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from api.views.tag_board_tags import TagBoardTagsListCreateView
-from api.views.tag_board import TagBoardRetrieveUpdateDestroyView
 from api.views.asset.asset import AssetRetrieveUpdateDeleteView
 from api.views.asset.asset_block import AssetBlockListCreateView
 from api.views.block.block import BlockRetrieveUpdateDeleteView
 from api.views.block.block_cluster import BlockClusterCreateView
 from api.views.block.block_generate import BlockGenerateCreateView
+from api.views.tag_board.tag_board_tags import TagBoardTagsListCreateView
+from api.views.tag_board.tag_board import TagBoardRetrieveUpdateDestroyView
 from api.views.project.project_tag_board import ProjectTagBoardListCreateView
 from api.views.block.block_takeaway import (
     BlockTakeawayDeleteView,
