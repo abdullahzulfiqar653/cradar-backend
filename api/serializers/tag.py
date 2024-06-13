@@ -9,12 +9,23 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
-        fields = ["id", "name", "project", "takeaway_count"]
+        fields = ["id", "name", "color", "project",  "takeaway_count"]
         validators = []  # To skip unique together constraint
+    
+    def validate_name(self, value):
+        tag_board = self.context.get("request").tag_board
+        if tag_board.tags.filter(name=value).exists():
+            raise serializers.ValidationError(
+                    f"'{value}' tag already exists for this tag board."
+                )
+        return value
 
     def create(self, validated_data):
-        instance, _ = Tag.objects.get_or_create(**validated_data)
-        return instance
+        tag_board = self.context.get("request").tag_board
+        validated_data['project'] = tag_board.project
+        tag = Tag.objects.create(**validated_data)
+        tag.tag_board.set([tag_board])
+        return tag
 
 
 class KeywordSerializer(serializers.ModelSerializer):
