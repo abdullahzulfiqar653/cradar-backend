@@ -2,6 +2,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from api.views.tag import TagRetrieveUpdateDestroyView
 from api.views.asset.asset import AssetRetrieveUpdateDeleteView
 from api.views.asset.asset_block import AssetBlockListCreateView
 from api.views.block.block import BlockRetrieveUpdateDeleteView
@@ -111,6 +112,11 @@ urlpatterns = [
         "tag-boards/<str:pk>/tags",
         TagBoardTagsListCreateView.as_view(),
         name="tag-boards-tags-list-create",
+    ),
+    path(
+        "tags/<str:pk>/",
+        TagRetrieveUpdateDestroyView.as_view(),
+        name="tag-retrieve-update-delete",
     ),
     # =====================================================
     # Reports

@@ -81,6 +81,15 @@ class InProjectOrWorkspace(permissions.BasePermission):
                 project = request.tag_board.project
                 workspace = project.workspace
 
+            case str(s) if s.startswith("/api/tags/"):
+                if not hasattr(request, "tag"):
+                    Tag = apps.get_model("api", "Tag")
+                    tag_id = view.kwargs.get("pk") or view.kwargs.get("tag_id")
+                    queryset = Tag.objects.select_related("project__workspace")
+                    request.tag = get_instance(queryset, tag_id)
+                project = request.tag.project
+                workspace = project.workspace
+
             case str(s) if s.startswith("/api/takeaways/"):
                 if not hasattr(request, "takeaway"):
                     Takeaway = apps.get_model("api", "Takeaway")
