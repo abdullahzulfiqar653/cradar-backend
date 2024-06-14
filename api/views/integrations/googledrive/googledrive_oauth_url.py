@@ -2,12 +2,12 @@ import uuid
 
 from django.conf import settings
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.models.integrations.googledrive.googledrive_oauth_state import (
     GoogleDriveOAuthState,
 )
+from api.permissions import IsWorkspaceEditor, IsWorkspaceOwner
 from api.serializers.integrations.googledrive.googledrive_oauth import (
     GoogleDriveOauthUrlSerializer,
 )
@@ -15,7 +15,7 @@ from api.serializers.integrations.googledrive.googledrive_oauth import (
 
 class GoogleDriveOauthUrlRetrieveView(generics.RetrieveAPIView):
     serializer_class = GoogleDriveOauthUrlSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsWorkspaceEditor | IsWorkspaceOwner]
 
     def get(self, request, *args, **kwargs):
         state = str(uuid.uuid4())

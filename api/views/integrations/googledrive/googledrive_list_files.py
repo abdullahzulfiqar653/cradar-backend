@@ -1,18 +1,18 @@
 import requests
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models.integrations.googledrive.googledrive_user import GoogleDriveUser
+from api.permissions import IsWorkspaceEditor, IsWorkspaceOwner
 from api.serializers.integrations.googledrive.googledrive_files import (
     GoogleDriveFileSerializer,
 )
 
 
 class GoogleDriveListFilesView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsWorkspaceOwner | IsWorkspaceEditor]
 
     def get(self, request, *args, **kwargs):
         try:
@@ -32,8 +32,6 @@ class GoogleDriveListFilesView(APIView):
         )
 
         if response.status_code != 200:
-            print(headers)
-            print(response.json())
             raise ValidationError("Failed to retrieve files from Google Drive")
 
         files = response.json().get("files", [])
