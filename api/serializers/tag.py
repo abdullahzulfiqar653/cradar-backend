@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from api.models.tag import Tag
+from api.ai.embedder import embedder
 from api.models.keyword import Keyword
 
 
@@ -9,7 +10,7 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
-        fields = ["id", "name", "color", "project",  "takeaway_count"]
+        fields = ["id", "name", "color", "project", "takeaway_count"]
         validators = []  # To skip unique together constraint
 
     def get_project(self):
@@ -36,6 +37,7 @@ class TagSerializer(serializers.ModelSerializer):
         validated_data['project'] = self.get_project()
         if hasattr(self.context.get("request"), 'tag_board'):
             validated_data['tag_board'] = self.context.get("request").tag_board
+            validated_data['vector'] = embedder.embed_documents([validated_data["name"]])[0]
             return super().create(validated_data)
         if hasattr(self.context.get("request"), 'takeaway'):
             tag = Tag.objects.create(**validated_data)

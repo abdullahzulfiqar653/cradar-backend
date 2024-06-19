@@ -1,19 +1,21 @@
 import json
-
+import numpy as np
+from tiktoken import encoding_for_model
+from pydantic.v1 import BaseModel, Field
+from pgvector.django import MaxInnerProduct
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext
-from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai.chat_models import ChatOpenAI
-from pydantic.v1 import BaseModel, Field
-from tiktoken import encoding_for_model
+from langchain.output_parsers import PydanticOutputParser
 
-from api.ai import config
-from api.ai.generators.utils import ParserErrorCallbackHandler, token_tracker
-from api.models.note import Note
 from api.models.tag import Tag
-from api.models.takeaway import Takeaway
+from api.models.note import Note
 from api.models.user import User
+from api.models.takeaway import Takeaway
+from api.ai import config
+from api.ai.embedder import embedder
+from api.ai.generators.utils import ParserErrorCallbackHandler, token_tracker
 
 __all__ = ["generate_tag"]
 
@@ -60,15 +62,14 @@ def get_chain():
             (
                 "system",
                 gettext(
-                    "Assign a list of tags for each string in the provided list. "
-                    "Tags should succinctly describe "
-                    "the content or topic of each string. "
-                    "Ensure that the tags are relevant and descriptive. "
+                    "Assign the provided list of tags to each string in the provided list of takeaways. "
+                    "Ensure that the tags are relevant. "
+                    "Use only the tags provided and do not generate new tags. "
                     "Output the response in JSON format such as the following example. "
                     f"Example: {example}"
                 ),
             ),
-            ("human", "{takeaways}"),
+            ("human", "{takeaways_and_tags}"),
         ],
     )
     parser = PydanticOutputParser(pydantic_object=TakeawayListSchema)
@@ -77,21 +78,26 @@ def get_chain():
 
 
 def generate_tags(note: Note, created_by: User):
-    chunked_takeaway_lists = chunk_takeaway_list(note)
     chain = get_chain()
+    chunked_takeaway_lists = chunk_takeaway_list(note)
+    tags = list(note.project.tags.all().values_list('name', flat=True))
 
     results = []
     with token_tracker(note.project, note, "generate-tags", created_by):
         for takeaway_list in chunked_takeaway_lists:
-            data = {"takeaways": takeaway_list}
-            takeaways = json.dumps(data)
+            data = {
+                "takeaways_and_tags": {
+                    "takeaways": takeaway_list,
+                    "tags": tags,
+                }
+            }
+            takeaways_and_tags = json.dumps(data)
             result = chain.invoke(
-                {"takeaways": takeaways},
+                {"takeaways_and_tags": takeaways_and_tags},
                 config={"callbacks": [ParserErrorCallbackHandler()]},
             )
             results.extend(result.dict()["takeaways"])
-    tags = save_tags(note, results)
-    save_takeaway_tags(note, tags, results)
+    save_takeaway_tags(note, results)
 
 
 def chunk_takeaway_list(note: Note):
@@ -123,14 +129,19 @@ def save_tags(note: Note, results) -> QuerySet[Tag]:
     return tags
 
 
-def save_takeaway_tags(note: Takeaway, tags: QuerySet[Tag], results):
-    get_tag = {tag.name.lower(): tag for tag in tags}
+def save_takeaway_tags(note: Takeaway, results):
     get_takeaway = {takeaway.id: takeaway for takeaway in note.takeaways.all()}
-    TakeawayTag = Takeaway.tags.through
-    takeaway_tags = []
     for takeaway_data in results:
         takeaway: Takeaway = get_takeaway[takeaway_data["id"]]
         for tag_name in takeaway_data["tags"]:
-            tag = get_tag[tag_name.lower()]
-            takeaway_tags.append(TakeawayTag(takeaway=takeaway, tag=tag))
-    TakeawayTag.objects.bulk_create(takeaway_tags, ignore_conflicts=True)
+            query_vector = embedder.embed_query(tag_name)
+            blank_vector = embedder.embed_documents([""])[0]
+            threshold = np.array(query_vector).dot(np.array(blank_vector))
+            matched_tag = (
+                Tag.objects.filter(project=note.project)
+                .annotate(score=-MaxInnerProduct("vector", query_vector))
+                .filter(score__gt=threshold)
+                .first()
+            )
+            if matched_tag:
+                takeaway.tags.add(matched_tag)
