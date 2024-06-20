@@ -43,8 +43,6 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://\w+\.kizunna\.com/?$",
     r"^https://\w+\.raijin\.ai/?$",
     "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:4173",
 ]
 FRONTEND_URL = env("FRONTEND_URL")
 

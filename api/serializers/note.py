@@ -69,6 +69,7 @@ class NoteSerializer(serializers.ModelSerializer):
             "url",
             "sentiment",
             "google_drive_file_id",
+            "google_drive_file_timestamp",
         ]
         read_only_fields = [
             "id",
@@ -155,7 +156,7 @@ class NoteSerializer(serializers.ModelSerializer):
             headers = {"Authorization": f"Bearer {gdrive_user.access_token}"}
 
             file_metadata_response = requests.get(
-                f"https://www.googleapis.com/drive/v3/files/{google_drive_file_id}",
+                f"https://www.googleapis.com/drive/v3/files/{google_drive_file_id}?fields=name,mimeType,size,createdTime",
                 headers=headers,
             )
             file_metadata_response.raise_for_status()
@@ -168,12 +169,17 @@ class NoteSerializer(serializers.ModelSerializer):
             file_content_response.raise_for_status()
             file_content = file_content_response.content
 
+            print(file_metadata)
+
             validated_data["title"] = file_metadata.get("name")
             validated_data["file"] = ContentFile(
                 file_content, name=file_metadata.get("name")
             )
             validated_data["file_type"] = file_metadata.get("mimeType")
             validated_data["file_size"] = file_metadata.get("size")
+            validated_data["google_drive_file_timestamp"] = file_metadata.get(
+                "createdTime"
+            )
         organizations = validated_data.pop("organizations", [])
         keywords = validated_data.pop("keywords", [])
         questions = validated_data.pop("questions", [])
