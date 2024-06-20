@@ -79,7 +79,7 @@ class TestChartNoteCreateView(APITestCase):
 
         expected_data = [
             {
-                "type": "",
+                "type": None,
                 "revenue": None,
                 "sentiment": None,
                 "organization": "organization",
@@ -91,7 +91,7 @@ class TestChartNoteCreateView(APITestCase):
                 "report_distinct_count": 1,
             },
             {
-                "type": "",
+                "type": None,
                 "revenue": None,
                 "sentiment": None,
                 "organization": None,

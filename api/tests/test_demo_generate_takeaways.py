@@ -32,7 +32,9 @@ class TestDemoGenerateTakeawaysCreateView(APITestCase):
     def test_demo_generate_takeaways(self, mocked_invoke: MagicMock):
         def side_effect(note, user):
             takeaway_type = TakeawayType.objects.create(
-                name="takeaway type 1", project=self.project
+                name="takeaway type 1",
+                project=self.project,
+                vector=np.random.rand(1536),
             )
             note.takeaways.create(
                 title="Takeaway 1 title",

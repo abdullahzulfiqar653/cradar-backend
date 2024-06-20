@@ -9,7 +9,6 @@ from api.models.organization import Organization
 from api.models.question import Question
 from api.models.tag import Tag
 from api.models.takeaway import Takeaway
-from api.models.takeaway_type import TakeawayType
 
 
 def cleanup_keywords():
@@ -24,12 +23,6 @@ def cleanup_organizations():
 
 def cleanup_tags():
     Tag.objects.filter(takeaway_count=0).delete()
-
-
-def cleanup_takeaway_types():
-    TakeawayType.objects.annotate(takeaway_count=Count("takeaways")).filter(
-        takeaway_count=0
-    ).delete()
 
 
 def cleanup_questions():
@@ -59,7 +52,6 @@ def takeaway_tags_changed(sender, action, instance, reverse, pk_set, **kwargs):
 @receiver(post_delete, sender=Takeaway)
 def post_delete_takeaway(sender, instance, **kwargs):
     cleanup_tags()
-    cleanup_takeaway_types()
 
 
 @receiver(m2m_changed, sender=NoteTemplate.questions.through)

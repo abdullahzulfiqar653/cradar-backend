@@ -6,6 +6,7 @@ from django.conf import settings
 from playwright.sync_api import sync_playwright
 
 from api.ai.translator import GoogleTranslator
+from api.utils.lexical import LexicalProcessor
 
 
 class MarkdownProcessor:
@@ -87,4 +88,11 @@ class MarkdownProcessor:
             page.locator("#clear-text").click()
             page.locator("#html-input").fill(self.to_html())
             output_str = page.locator("#lexical-json-output").text_content()
-            return json.loads(output_str)
+            lexical_json = json.loads(output_str)
+
+            # Convert the paragraph format to justify
+            lexical = LexicalProcessor(lexical_json["root"])
+            lexical.dict["children"] = lexical.dict["children"][1]["children"]
+            for paragraph in lexical.find_all("paragraph"):
+                paragraph.dict["format"] = "justify"
+            return lexical_json

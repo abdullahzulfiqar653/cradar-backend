@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from api.models.note import Note
+from api.models.note_type import NoteType
 from api.models.project import Project
 from api.models.user import User
 from api.models.workspace import Workspace
@@ -28,11 +29,18 @@ class TestNoteTagGenerateView(APITestCase):
         self.project = Project.objects.create(name="project", workspace=workspace)
         self.project.users.add(self.user)
 
+        self.note_type1 = NoteType.objects.create(
+            name="Report-type-1", project=self.project, vector=np.random.rand(1536)
+        )
+        self.note_type2 = NoteType.objects.create(
+            name="Report-type-2", project=self.project, vector=np.random.rand(1536)
+        )
+
         self.note = Note.objects.create(
             title="Sample report",
             project=self.project,
             author=self.user,
-            type="Report-type-1",
+            type=self.note_type1,
         )
         self.takeaway1 = self.note.takeaways.create(
             title="takeaway 1", created_by=self.user, vector=np.random.rand(1536)

@@ -3,14 +3,14 @@ from pgvector.django import MaxInnerProduct
 from rest_framework import generics
 
 from api.ai.embedder import embedder
-from api.ai.generators.block_generator import generate_block
+from api.ai.generators.block_generator import generate_content
 from api.filters.takeaway import TakeawayFilter
 from api.models.takeaway import Takeaway
-from api.serializers.block import BlockGenerateSerializer
+from api.serializers.asset import AssetGenerateSerializer
 
 
-class BlockGenerateCreateView(generics.CreateAPIView):
-    serializer_class = BlockGenerateSerializer
+class AssetGenerateCreateView(generics.CreateAPIView):
+    serializer_class = AssetGenerateSerializer
 
     # The following are for filtering takeaways
     filterset_class = TakeawayFilter
@@ -29,24 +29,19 @@ class BlockGenerateCreateView(generics.CreateAPIView):
     ]
 
     def perform_create(self, serializer):
-        block = self.request.block
+        asset = self.request.asset
 
         # Filter takeaways
-        filter_string = serializer.data["filter"]
+        filter_string = self.request.data.get("filter")
         if filter_string is None:
-            filter_string = block.asset.filter
+            filter_string = asset.filter
         self.request._request.GET = QueryDict(filter_string)
-        takeaways = Takeaway.objects.filter(
-            note__project=self.request.block.asset.project
-        )
+        takeaways = Takeaway.objects.filter(note__project=self.request.asset.project)
         takeaways = self.filter_queryset(takeaways)
 
-        question = serializer.data["question"]
+        question = self.request.data["question"]
         vector = embedder.embed_query(question)
         takeaways = takeaways.order_by(MaxInnerProduct("vector", vector))
 
-        # We set the attributes of the block here but save it inside generate_block()
-        block.question = question
-        block.filter = filter_string
-        generate_block(block, question, takeaways, self.request.user)
-        serializer._data["content"] = block.content
+        output = generate_content(asset, question, takeaways, self.request.user)
+        serializer.validated_data["markdown"] = output

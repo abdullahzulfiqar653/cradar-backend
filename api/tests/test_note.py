@@ -7,6 +7,7 @@ from rest_framework.test import APITestCase
 from api.models.highlight import Highlight
 from api.models.keyword import Keyword
 from api.models.note import Note, blank_content
+from api.models.note_type import NoteType
 from api.models.organization import Organization
 from api.models.project import Project
 from api.models.user import User
@@ -73,6 +74,14 @@ class TestNoteRetrieveUpdateDeleteView(APITestCase):
         workspace.members.add(self.user, through_defaults={"role": "Editor"})
         self.project = Project.objects.create(name="project", workspace=workspace)
         self.project.users.add(self.user)
+
+        self.note_type1 = NoteType.objects.create(
+            name="Report-type-1", project=self.project, vector=np.random.rand(1536)
+        )
+        self.note_type2 = NoteType.objects.create(
+            name="Report-type-2", project=self.project, vector=np.random.rand(1536)
+        )
+
         self.note = Note.objects.create(
             title="note",
             project=self.project,
@@ -256,6 +265,24 @@ class TestNoteRetrieveUpdateDeleteView(APITestCase):
             0,
             "Organization that is not related to any note is not cleaned up.",
         )
+
+    def test_user_update_note_type(self):
+        self.client.force_authenticate(self.user)
+        url = f"/api/reports/{self.note.id}/"
+
+        # Test add type
+        data = {"type_id": self.note_type1.id}
+        response = self.client.patch(url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.note.refresh_from_db()
+        self.assertEqual(self.note.type.id, self.note_type1.id)
+
+        # Test replace type
+        data = {"type_id": self.note_type2.id}
+        response = self.client.patch(url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.note.refresh_from_db()
+        self.assertEqual(self.note.type.id, self.note_type2.id)
 
     def test_outsider_retrieve_note(self):
         self.client.force_authenticate(self.outsider)

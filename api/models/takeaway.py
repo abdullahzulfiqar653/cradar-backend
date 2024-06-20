@@ -47,7 +47,7 @@ class Takeaway(models.Model):
             HnswIndex(
                 name="takeaway-vector-index",
                 fields=["vector"],
-                opclasses=["vector_ip_ops"],
+                opclasses=["vector_ip_ops"],  # Use the inner product operator
             )
         ]
 

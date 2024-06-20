@@ -1,6 +1,8 @@
 from django_filters import rest_framework as filters
 
+from api.filters.patch import ModelMultipleChoiceFilter
 from api.models.note import Note
+from api.models.note_type import NoteType
 from api.models.project import Project
 from api.models.tag import Tag
 from api.models.takeaway import Takeaway
@@ -85,6 +87,11 @@ def notes_in_scope(request):
     return Note.objects.none()
 
 
+def note_types_in_scope(request):
+    notes = notes_in_scope(request)
+    return NoteType.objects.filter(notes__in=notes)
+
+
 def takeaway_types_in_scope(request):
     "Return the list of takeaway types in project"
     kwargs = request.parser_context["kwargs"]
@@ -115,23 +122,25 @@ def takeaway_types_in_scope(request):
 
 
 class TakeawayFilter(filters.FilterSet):
-    created_by = filters.ModelMultipleChoiceFilter(
+    created_by = ModelMultipleChoiceFilter(
         field_name="created_by__username",
         to_field_name="username",
         queryset=users_in_scope,
     )
-    tag = filters.ModelMultipleChoiceFilter(
+    tag = ModelMultipleChoiceFilter(
         field_name="tags__name", to_field_name="name", queryset=tags_in_scope
     )
-    report_id = filters.ModelMultipleChoiceFilter(
+    report_id = ModelMultipleChoiceFilter(
         field_name="note", to_field_name="id", queryset=notes_in_scope
     )
     priority = filters.MultipleChoiceFilter(choices=Takeaway.Priority.choices)
-    type = filters.ModelMultipleChoiceFilter(
+    type = ModelMultipleChoiceFilter(
         field_name="type__name", to_field_name="name", queryset=takeaway_types_in_scope
     )
-    report_type = filters.ModelMultipleChoiceFilter(
-        field_name="note__type", to_field_name="type", queryset=notes_in_scope
+    report_type = ModelMultipleChoiceFilter(
+        field_name="note__type__name",
+        to_field_name="name",
+        queryset=note_types_in_scope,
     )
     created_at = filters.DateFromToRangeFilter(field_name="created_at")
 

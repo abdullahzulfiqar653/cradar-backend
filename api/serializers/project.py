@@ -2,7 +2,10 @@
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
+from api.ai.embedder import embedder
+from api.models.note_type import NoteType, default_note_types
 from api.models.project import Project
+from api.models.takeaway_type import TakeawayType, default_takeaway_types
 from api.serializers.workspace import WorkspaceDetailSerializer, WorkspaceSerializer
 
 
@@ -13,6 +16,24 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ["id", "name", "description", "workspace", "language"]
+
+    def create_default_note_types(self, project):
+        vectors = embedder.embed_documents(default_note_types)
+        NoteType.objects.bulk_create(
+            [
+                NoteType(name=name, project=project, vector=vector)
+                for name, vector in zip(default_note_types, vectors)
+            ]
+        )
+
+    def create_default_takeaway_types(self, project):
+        vectors = embedder.embed_documents(default_takeaway_types)
+        TakeawayType.objects.bulk_create(
+            [
+                TakeawayType(name=name, project=project, vector=vector)
+                for name, vector in zip(default_takeaway_types, vectors)
+            ]
+        )
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -30,7 +51,10 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         validated_data["workspace"] = workspace
         validated_data["users"] = [user]
-        return super().create(validated_data)
+        project = super().create(validated_data)
+        self.create_default_note_types(project)
+        self.create_default_takeaway_types(project)
+        return project
 
 
 class ProjectDetailSerializer(ProjectSerializer):

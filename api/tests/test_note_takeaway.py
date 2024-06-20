@@ -29,6 +29,13 @@ class TestNoteTakeawayListCreateView(APITestCase):
         self.project = Project.objects.create(name="project", workspace=workspace)
         self.project.users.add(self.user)
 
+        self.takeaway_type1 = self.project.takeaway_types.create(
+            name="type 1", vector=np.random.rand(1536)
+        )
+        self.takeaway_type2 = self.project.takeaway_types.create(
+            name="type 2", vector=np.random.rand(1536)
+        )
+
         self.note = Note.objects.create(
             title="note 1", project=self.project, author=self.user
         )
@@ -65,7 +72,7 @@ class TestNoteTakeawayListCreateView(APITestCase):
     def test_user_create_takeaway(self):
         data = {
             "title": "takeaway title",
-            "type": "takeaway type",
+            "type_id": self.takeaway_type1.id,
             "priority": "Low",
         }
         self.client.force_authenticate(self.user)
@@ -74,7 +81,7 @@ class TestNoteTakeawayListCreateView(APITestCase):
         takeaway_id = response.json()["id"]
         takeaway = Takeaway.objects.get(id=takeaway_id)
         self.assertEqual(takeaway.title, "takeaway title")
-        self.assertEqual(takeaway.type.name, "takeaway type")
+        self.assertEqual(takeaway.type, self.takeaway_type1)
         self.assertEqual(takeaway.priority, "Low")
 
     def test_user_create_takeaway_with_null_type(self):

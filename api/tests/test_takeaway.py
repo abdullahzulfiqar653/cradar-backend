@@ -9,7 +9,6 @@ from api.models.note import Note
 from api.models.project import Project
 from api.models.tag import Tag
 from api.models.takeaway import Takeaway
-from api.models.takeaway_type import TakeawayType
 from api.models.user import User
 from api.models.workspace import Workspace
 
@@ -34,8 +33,9 @@ class TestTakeawayRetrieveUpdateDeleteView(APITestCase):
         self.note = Note.objects.create(
             title="note", project=self.project, author=self.user
         )
-        self.takeaway_type = TakeawayType.objects.create(
-            name="takeaway type", project=self.project
+
+        self.takeaway_type = self.project.takeaway_types.create(
+            name="takeaway type", vector=np.random.rand(1536)
         )
         self.highlight = Highlight.objects.create(
             title="highlight",
@@ -98,7 +98,7 @@ class TestTakeawayRetrieveUpdateDeleteView(APITestCase):
     def test_user_update_takeaway_type(self):
         url = f"/api/takeaways/{self.takeaway.id}/"
         data = {
-            "type": None,
+            "type_id": None,
         }
         self.client.force_authenticate(self.user)
         response = self.client.patch(url, data=data)
@@ -118,17 +118,6 @@ class TestTakeawayRetrieveUpdateDeleteView(APITestCase):
         self.assertEqual(self.takeaway.type, self.takeaway_type)
         self.assertEqual(self.takeaway.priority, Takeaway.Priority.HIGH)
 
-    def test_user_update_takeaway_priority(self):
-        url = f"/api/takeaways/{self.takeaway.id}/"
-        data = {
-            "type": "new takeaway type",
-        }
-        self.client.force_authenticate(self.user)
-        response = self.client.patch(url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.takeaway.refresh_from_db()
-        self.assertEqual(self.takeaway.type.name, "new takeaway type")
-
     def test_user_delete_takeaway(self):
         self.assertTrue(Takeaway.objects.filter(id=self.takeaway.id).exists())
         url = f"/api/takeaways/{self.takeaway.id}/"
@@ -144,9 +133,6 @@ class TestTakeawayRetrieveUpdateDeleteView(APITestCase):
             node = stack.pop()
             self.assertNotEqual(node.get("type"), "mark")
             stack.extend(node.get("children", []))
-
-        # Make sure that the takeaway type is cleaned up
-        self.assertFalse(TakeawayType.objects.filter(id=self.takeaway_type.id).exists())
 
         # Make sure that the tags are cleaned up
         self.assertFalse(Tag.objects.filter(id=self.tag.id).exists())

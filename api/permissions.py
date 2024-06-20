@@ -33,6 +33,17 @@ class InProjectOrWorkspace(permissions.BasePermission):
                 project = request.note.project
                 workspace = project.workspace
 
+            case str(s) if s.startswith("/api/report-types/"):
+                if not hasattr(request, "note_type"):
+                    NoteType = apps.get_model("api", "NoteType")
+                    report_type_id = view.kwargs.get("pk") or view.kwargs.get(
+                        "report_type_id"
+                    )
+                    queryset = NoteType.objects.select_related("project__workspace")
+                    request.note_type = get_instance(queryset, report_type_id)
+                project = request.note_type.project
+                workspace = project.workspace
+
             case str(s) if s.startswith("/api/report-templates/"):
                 if not hasattr(request, "note_template"):
                     NoteTemplate = apps.get_model("api", "NoteTemplate")
@@ -72,6 +83,17 @@ class InProjectOrWorkspace(permissions.BasePermission):
                     )
                     request.takeaway = get_instance(queryset, takeaway_id)
                 project = request.takeaway.note.project
+                workspace = project.workspace
+
+            case str(s) if s.startswith("/api/takeaway-types/"):
+                if not hasattr(request, "takeaway_type"):
+                    TakeawayType = apps.get_model("api", "TakeawayType")
+                    takeaway_type_id = view.kwargs.get("pk") or view.kwargs.get(
+                        "takeaway_type_id"
+                    )
+                    queryset = TakeawayType.objects.select_related("project__workspace")
+                    request.takeaway_type = get_instance(queryset, takeaway_type_id)
+                project = request.takeaway_type.project
                 workspace = project.workspace
 
             case str(s) if s.startswith("/api/insights/"):

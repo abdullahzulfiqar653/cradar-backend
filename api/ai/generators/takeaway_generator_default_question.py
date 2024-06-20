@@ -10,6 +10,7 @@ from langchain.schema.document import Document
 from langchain.text_splitter import TokenTextSplitter
 from langchain_openai.chat_models import ChatOpenAI
 from nltk.tokenize import sent_tokenize
+from pgvector.django import MaxInnerProduct
 from pydantic.v1 import BaseModel, Field
 
 from api.ai import config
@@ -164,19 +165,6 @@ def generate_takeaways_default_question(note: Note, created_by: User):
         for takeaway in output.dict()["takeaways"]
     ]
 
-    # Create new takeaway types
-    existing_takeaway_types = set(
-        TakeawayType.objects.filter(project=note.project).values_list("name", flat=True)
-    )
-    generated_takeaway_types = {takeaway["type"] for takeaway in generated_takeaways}
-    new_takeaway_types = generated_takeaway_types - existing_takeaway_types
-    takeaway_types_to_create = []
-    for takeaway_type in new_takeaway_types:
-        takeaway_types_to_create.append(
-            TakeawayType(name=takeaway_type, project=note.project)
-        )
-    TakeawayType.objects.bulk_create(takeaway_types_to_create)
-
     # Embed note content
     lexical = LexicalProcessor(note.content["root"])
     sentences = [
@@ -201,17 +189,26 @@ def generate_takeaways_default_question(note: Note, created_by: User):
         generated_takeaways, generated_takeaway_vectors
     ):
         note_takeaway_sequence += 1
+        # Map takeaway type
+        if generated_takeaway["type"] in takeaway_type_dict:
+            takeaway_type = takeaway_type_dict[generated_takeaway["type"]]
+        else:
+            query_vector = embedder.embed_query(generated_takeaway["type"])
+            takeaway_type = (
+                TakeawayType.objects.filter(project=note.project)
+                .order_by(MaxInnerProduct("vector", query_vector))
+                .first()
+            )
         takeaway = Takeaway(
             title=generated_takeaway["title"],
             vector=vector,
-            type=takeaway_type_dict[generated_takeaway["type"]],
+            type=takeaway_type,
             note=note,
             created_by=bot,
             code=f"{note.code}-{note_takeaway_sequence}",
         )
 
-        vec = np.array(embedder.embed_documents([generated_takeaway["title"]]))
-        scores = vec.dot(doc_vecs.T)[0]
+        scores = np.array(vector).dot(doc_vecs.T)
         highlight_str = sentences[np.argmax(scores)]
         lexical.highlight(highlight_str, takeaway.id)
         highlight = Highlight(takeaway_ptr_id=takeaway.id, quote=highlight_str)

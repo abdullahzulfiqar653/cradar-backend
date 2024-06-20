@@ -50,15 +50,15 @@ class TestBlockTakeawayListCreateView(APITestCase):
         self.asset = Asset.objects.create(
             title="asset", project=self.project, created_by=self.user
         )
-        self.text_block = Block.objects.create(
-            type=Block.Type.TEXT,
-            asset=self.asset,
-        )
         self.takeaway_block = Block.objects.create(
             type=Block.Type.TAKEAWAYS,
             asset=self.asset,
         )
-        self.asset.blocks.add(self.takeaway_block)
+        self.theme_block = Block.objects.create(
+            type=Block.Type.THEMES,
+            asset=self.asset,
+        )
+        self.asset.blocks.add(self.takeaway_block, self.theme_block)
         self.takeaway_block.takeaways.add(self.takeaway1)
 
     def test_user_list_block_takeaways(self):
@@ -70,10 +70,10 @@ class TestBlockTakeawayListCreateView(APITestCase):
         response_takeaway_ids = [takeaway["id"] for takeaway in response.json()]
         self.assertCountEqual(response_takeaway_ids, [self.takeaway1.id])
 
-    def test_user_add_takeaways_to_text_block(self):
-        "We do not allow adding takeaways to text block."
+    def test_user_add_takeaways_to_theme_block(self):
+        "We do not allow adding takeaways to theme block."
         data = {"takeaways": [{"id": self.takeaway2.id}]}
-        url = f"/api/blocks/{self.text_block.id}/takeaways/"
+        url = f"/api/blocks/{self.theme_block.id}/takeaways/"
         self.client.force_authenticate(self.user)
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

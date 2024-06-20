@@ -11,6 +11,7 @@ from api.models.theme import Theme
 from api.models.user import User
 from api.serializers.question import QuestionSerializer
 from api.serializers.tag import TagSerializer
+from api.serializers.takeaway_type import TakeawayTypeSerializer
 from api.serializers.user import UserSerializer
 
 
@@ -27,6 +28,14 @@ class TakeawaySerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     type = serializers.CharField(source="type.name", required=False, allow_null=True)
+    type = TakeawayTypeSerializer(read_only=True)
+    type_id = serializers.PrimaryKeyRelatedField(
+        source="type",
+        queryset=TakeawayType.objects.none(),
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
     report = BriefNoteSerializer(source="note", read_only=True)
     question = QuestionSerializer(read_only=True)
     is_saved = serializers.BooleanField(read_only=True)
@@ -39,6 +48,7 @@ class TakeawaySerializer(serializers.ModelSerializer):
             "title",
             "tags",
             "type",
+            "type_id",
             "description",
             "priority",
             "created_by",
@@ -48,6 +58,16 @@ class TakeawaySerializer(serializers.ModelSerializer):
             "is_saved",
             "quote",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if hasattr(request, "note"):
+            self.fields["type_id"].queryset = request.note.project.takeaway_types.all()
+        elif hasattr(request, "takeaway"):
+            self.fields["type_id"].queryset = (
+                request.takeaway.note.project.takeaway_types.all()
+            )
 
     @classmethod
     def optimize_query(cls, queryset, user):
@@ -80,13 +100,6 @@ class TakeawaySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        takeaway_type_data = validated_data.pop("type", None)
-        if takeaway_type_data is not None and takeaway_type_data["name"] is not None:
-            takeaway_type, _ = TakeawayType.objects.get_or_create(
-                name=takeaway_type_data["name"], project=request.note.project
-            )
-            validated_data["type"] = takeaway_type
-
         validated_data["created_by"] = request.user
         validated_data["note"] = request.note
         validated_data["vector"] = embedder.embed_documents([validated_data["title"]])[
@@ -95,16 +108,6 @@ class TakeawaySerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, takeaway, validated_data):
-        if "type" in validated_data:
-            takeaway_type_data = validated_data.pop("type")
-            if takeaway_type_data["name"]:
-                takeaway_type, _ = TakeawayType.objects.get_or_create(
-                    name=takeaway_type_data["name"], project=takeaway.note.project
-                )
-                takeaway.type = takeaway_type
-            else:
-                # User remove takeaway type
-                takeaway.type = None
         if "title" in validated_data:
             validated_data["vector"] = embedder.embed_documents(
                 [validated_data["title"]]

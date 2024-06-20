@@ -10,6 +10,7 @@ from api.models.note_property_option import NotePropertyOption
 from api.models.note_question import NoteQuestion
 from api.models.note_template import NoteTemplate
 from api.models.note_template_question import NoteTemplateQuestion
+from api.models.note_type import NoteType
 from api.models.option import Option
 from api.models.organization import Organization
 from api.models.project import Project
@@ -17,6 +18,7 @@ from api.models.property import Property
 from api.models.question import Question
 from api.models.tag import Tag
 from api.models.takeaway import Takeaway
+from api.models.takeaway_type import TakeawayType
 from api.models.theme import Theme
 from api.models.usage.token import TokenUsage
 from api.models.usage.transciption import TranscriptionUsage
@@ -52,4 +54,6 @@ __all__ = [
     "Option",
     "NoteProperty",
     "NotePropertyOption",
+    "NoteType",
+    "TakeawayType",
 ]

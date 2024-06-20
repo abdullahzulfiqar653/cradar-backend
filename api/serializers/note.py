@@ -11,8 +11,10 @@ from api.models.highlight import Highlight
 from api.models.integrations.googledrive.googledrive_user import GoogleDriveUser
 from api.models.keyword import Keyword
 from api.models.note import Note
+from api.models.note_type import NoteType
 from api.models.organization import Organization
 from api.models.question import Question
+from api.serializers.note_type import NoteTypeSerializer
 from api.serializers.organization import OrganizationSerializer
 from api.serializers.question import QuestionSerializer
 from api.serializers.tag import KeywordSerializer
@@ -31,6 +33,14 @@ class NoteSerializer(serializers.ModelSerializer):
     summary = serializers.JSONField(required=False, default=[])
     organizations = OrganizationSerializer(many=True, required=False)
     google_drive_file_id = serializers.CharField(write_only=True, required=False)
+    type = NoteTypeSerializer(read_only=True)
+    type_id = serializers.PrimaryKeyRelatedField(
+        source="type",
+        queryset=NoteType.objects.none(),
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Note
@@ -51,6 +61,7 @@ class NoteSerializer(serializers.ModelSerializer):
             "revenue",
             "description",
             "type",
+            "type_id",
             "is_published",
             "file",
             "file_type",
@@ -81,6 +92,14 @@ class NoteSerializer(serializers.ModelSerializer):
                 "default": "",
             },
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if hasattr(request, "project"):
+            self.fields["type_id"].queryset = request.project.note_types.all()
+        elif hasattr(request, "note"):
+            self.fields["type_id"].queryset = request.note.project.note_types.all()
 
     def validate_content(self, content):
         text = LexicalProcessor(content["root"]).to_markdown()
@@ -269,11 +288,6 @@ class ProjectNoteSerializer(NoteSerializer):
 
     class Meta(NoteSerializer.Meta):
         fields = list(set(NoteSerializer.Meta.fields) - {"content", "highlights"})
-
-
-class ProjectNoteTypeSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    report_count = serializers.IntegerField()
 
 
 class ProjectSentimentSerializer(serializers.Serializer):

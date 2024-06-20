@@ -4,11 +4,13 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
+import numpy as np
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from api.models.keyword import Keyword
 from api.models.note import Note
+from api.models.note_type import NoteType
 from api.models.project import Project
 from api.models.usage.transciption import TranscriptionUsage
 from api.models.user import User
@@ -31,6 +33,13 @@ class TestProjectNoteListCreateView(APITestCase):
         workspace.members.add(self.user, through_defaults={"role": "Editor"})
         self.project = Project.objects.create(name="project", workspace=workspace)
         self.project.users.add(self.user)
+
+        self.note_type1 = NoteType.objects.create(
+            name="Report-type-1", project=self.project, vector=np.random.rand(1536)
+        )
+        self.note_type2 = NoteType.objects.create(
+            name="Report-type-2", project=self.project, vector=np.random.rand(1536)
+        )
         return super().setUp()
 
     def test_user_list_report_filter_report_type(self):
@@ -38,19 +47,19 @@ class TestProjectNoteListCreateView(APITestCase):
             title="Sample report",
             project=self.project,
             author=self.user,
-            type="Report-type-1",
+            type=self.note_type1,
         )
         Note.objects.create(
             title="Sample report with the same type",
             project=self.project,
             author=self.user,
-            type="Report-type-1",
+            type=self.note_type1,
         )
         Note.objects.create(
             title="Sample report with a different type",
             project=self.project,
             author=self.user,
-            type="Report-type-2",
+            type=self.note_type2,
         )
         self.client.force_authenticate(self.user)
         url = f"/api/projects/{self.project.id}/reports/?type=Report-type-1"
@@ -58,7 +67,7 @@ class TestProjectNoteListCreateView(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()), 2)
         for report in response.json():
-            self.assertEqual(report["type"], "Report-type-1")
+            self.assertEqual(report["type"]["id"], self.note_type1.id)
 
     def test_user_list_report_filter_keyword(self):
         note_with_keyword = Note.objects.create(
@@ -88,19 +97,19 @@ class TestProjectNoteListCreateView(APITestCase):
             title="Sample report",
             project=self.project,
             author=self.user,
-            type="Report-type-1",
+            type=self.note_type1,
         )
         Note.objects.create(
             title="Sample report with search term",
             project=self.project,
             author=self.user,
-            type="Report-type-1",
+            type=self.note_type1,
         )
         Note.objects.create(
             title="Another sample report with search term",
             project=self.project,
             author=self.user,
-            type="Report-type-2",
+            type=self.note_type2,
         )
         self.client.force_authenticate(self.user)
         url = f"/api/projects/{self.project.id}/reports/?search=search%20term"

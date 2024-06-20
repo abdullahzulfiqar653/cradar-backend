@@ -6,6 +6,28 @@ from copy import deepcopy
 from typing import Callable
 
 
+def blank_content():
+    return {
+        "root": {
+            "children": [
+                {
+                    "children": [],
+                    "direction": None,
+                    "format": "",
+                    "indent": 0,
+                    "type": "paragraph",
+                    "version": 1,
+                }
+            ],
+            "direction": None,
+            "format": "",
+            "indent": 0,
+            "type": "root",
+            "version": 1,
+        }
+    }
+
+
 class LexicalProcessor:
     def __init__(self, lexical: dict, parent: LexicalProcessor | None = None):
         self.dict = lexical

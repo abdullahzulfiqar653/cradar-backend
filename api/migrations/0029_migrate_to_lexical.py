@@ -36,6 +36,8 @@ def migrate_notes_content_to_lexical(apps, schema_editor):
     environ.Env.read_env(".env.example")
     frontend_url = env("FRONTEND_URL")
     notes = list(Note.objects.all())
+    if len(notes) == 0:
+        return
     new_note_contents = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(timeout=300000)

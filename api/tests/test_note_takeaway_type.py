@@ -33,7 +33,7 @@ class TestNoteTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type1 = TakeawayType.objects.create(
-            name="takeaway type 1", project=self.project
+            name="takeaway type 1", project=self.project, vector=np.random.rand(1536)
         )
         self.takeaway1 = Takeaway.objects.create(
             title="takeaway 1",
@@ -47,7 +47,7 @@ class TestNoteTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type2 = TakeawayType.objects.create(
-            name="takeaway type 2", project=self.project
+            name="takeaway type 2", project=self.project, vector=np.random.rand(1536)
         )
         self.takeaway2 = Takeaway.objects.create(
             title="takeaway 2",

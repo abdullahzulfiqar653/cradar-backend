@@ -15,7 +15,7 @@ from api.models.workspace import Workspace
 
 
 # Create your tests here.
-class TestTakeawayTagView(APITestCase):
+class TestAssetGenerateCreateView(APITestCase):
     def setUp(self) -> None:
         """Reduce the log level to avoid errors like 'not found'"""
         logger = logging.getLogger("django.request")
@@ -38,8 +38,7 @@ class TestTakeawayTagView(APITestCase):
         self.takeaway1 = Takeaway.objects.create(
             title="takeaway 1",
             note=self.note,
-            created_by=self.outsider,
-            priority=Takeaway.Priority.HIGH,
+            created_by=self.user,
             vector=np.random.rand(1536),
         )
         self.takeaway2 = Takeaway.objects.create(
@@ -52,14 +51,55 @@ class TestTakeawayTagView(APITestCase):
         self.asset = Asset.objects.create(
             title="asset", project=self.project, created_by=self.user
         )
-        self.text_block = Block.objects.create(
-            type=Block.Type.TEXT,
+        self.takeaways_block = Block.objects.create(
             asset=self.asset,
+            type=Block.Type.TAKEAWAYS,
         )
+        self.themes_block = Block.objects.create(
+            asset=self.asset,
+            type=Block.Type.THEMES,
+        )
+        self.asset.content = {
+            "root": {
+                "type": "Root",
+                "children": [
+                    {
+                        "type": "paragraph",
+                        "format": "",
+                        "indent": 0,
+                        "version": 1,
+                        "children": [
+                            {
+                                "mode": "normal",
+                                "text": "This is some text",
+                                "type": "text",
+                                "style": "",
+                                "detail": 0,
+                                "format": 0,
+                                "version": 1,
+                            }
+                        ],
+                        "direction": "ltr",
+                    },
+                    {
+                        "type": "Takeaways",
+                        "block_id": self.takeaways_block.id,
+                        "version": 1,
+                    },
+                    {
+                        "type": "Themes",
+                        "block_id": self.themes_block.id,
+                        "version": 1,
+                    },
+                ],
+            }
+        }
+        self.takeaways_block.takeaways.add(self.takeaway1, self.takeaway2)
+        return super().setUp()
 
     def test_user_generate_block_with_blank_question(self):
         "Cannot generate text block without question or with blank question"
-        url = f"/api/blocks/{self.text_block.id}/generate/"
+        url = f"/api/assets/{self.asset.id}/generate/"
         self.client.force_authenticate(self.user)
         response = self.client.post(url, data={})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -74,7 +114,7 @@ class TestTakeawayTagView(APITestCase):
 
         mocked_invoke.return_value = Output()
 
-        url = f"/api/blocks/{self.text_block.id}/generate/"
+        url = f"/api/assets/{self.asset.id}/generate/"
         self.client.force_authenticate(self.user)
         response = self.client.post(
             url,
@@ -86,6 +126,5 @@ class TestTakeawayTagView(APITestCase):
 
         mocked_invoke.assert_called_once()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertDictEqual(
-            response.json()["content"], {"markdown": "Generated results."}
-        )
+        # Backend only returns the markdown, frontend will be responsible for updating the content
+        self.assertEqual(response.json()["markdown"], "Generated results.")

@@ -33,7 +33,7 @@ class TestProjectTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type1 = TakeawayType.objects.create(
-            name="takeaway type 1", project=self.project
+            name="takeaway type 1", project=self.project, vector=np.random.rand(1536)
         )
         self.takeaway1 = Takeaway.objects.create(
             title="takeaway 1",
@@ -47,7 +47,7 @@ class TestProjectTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type2 = TakeawayType.objects.create(
-            name="takeaway type 2", project=self.project
+            name="takeaway type 2", project=self.project, vector=np.random.rand(1536)
         )
         self.takeaway2 = Takeaway.objects.create(
             title="takeaway 2",
@@ -55,6 +55,11 @@ class TestProjectTakeawayListView(APITestCase):
             created_by=self.user,
             type=self.takeaway_type2,
             vector=np.random.rand(1536),
+        )
+
+        # Takeaway type that is not attached to any takeaway
+        self.takeaway_type3 = TakeawayType.objects.create(
+            name="takeaway type 3", project=self.project, vector=np.random.rand(1536)
         )
 
         self.url = f"/api/projects/{self.project.id}/takeaway-types/"
@@ -72,9 +77,35 @@ class TestProjectTakeawayListView(APITestCase):
                 "name": self.takeaway_type2.name,
                 "project": self.takeaway_type1.project.id,
             },
+            {
+                "id": self.takeaway_type3.id,
+                "name": self.takeaway_type3.name,
+                "project": self.takeaway_type1.project.id,
+            },
         ]
         self.client.force_authenticate(self.user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.json()), 2)
+        self.assertEqual(len(response.json()), 3)
         self.assertCountEqual(response.json(), expected_data)
+
+    def test_user_create_project_takeaway_type(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post(
+            self.url,
+            {"name": "new takeaway type", "vector": np.random.rand(1536).tolist()},
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(TakeawayType.objects.filter(project=self.project).count(), 4)
+
+    def test_user_create_project_takeaway_type_with_existing_name(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post(
+            self.url,
+            {"name": self.takeaway_type1.name, "vector": np.random.rand(1536).tolist()},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json(),
+            {"name": ["Takeaway type with this name already exists in this project."]},
+        )

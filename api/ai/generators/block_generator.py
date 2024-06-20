@@ -6,7 +6,7 @@ from tiktoken import encoding_for_model
 
 from api.ai import config
 from api.ai.generators.utils import token_tracker
-from api.models.block import Block
+from api.models.asset import Asset
 from api.models.takeaway import Takeaway
 from api.models.user import User
 
@@ -25,8 +25,8 @@ def construct_prompt(question: str, takeaways: QuerySet[Takeaway]):
     return prompt
 
 
-def generate_block(
-    block: Block, question: str, takeaways: QuerySet[Takeaway], created_by: User
+def generate_content(
+    asset: Asset, question: str, takeaways: QuerySet[Takeaway], created_by: User
 ):
     human_prompt = construct_prompt(question, takeaways)
     prompt = ChatPromptTemplate.from_messages(
@@ -40,7 +40,6 @@ def generate_block(
     )
     llm = ChatOpenAI(model=config.model)
     chain = prompt | llm
-    with token_tracker(block.asset.project, block, "generate-block", created_by):
+    with token_tracker(asset.project, asset, "generate-asset", created_by):
         output = chain.invoke({})
-    block.content = {"markdown": output.content}
-    block.save()
+    return output.content

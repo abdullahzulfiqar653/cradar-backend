@@ -4,7 +4,7 @@ from api.models.block import Block
 from api.serializers.block import BlockSerializer
 
 
-class AssetBlockListCreateView(generics.ListCreateAPIView):
+class AssetBlockListView(generics.ListAPIView):
     queryset = Block.objects.all()
     serializer_class = BlockSerializer
 

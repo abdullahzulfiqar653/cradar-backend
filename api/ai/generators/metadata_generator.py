@@ -1,5 +1,6 @@
 from typing import Optional
 
+import numpy as np
 from django.utils.translation import gettext
 from langchain.chains.combine_documents.map_reduce import (
     MapReduceDocumentsChain,
@@ -12,10 +13,12 @@ from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.schema.document import Document
 from langchain.text_splitter import TokenTextSplitter
 from langchain_openai.chat_models import ChatOpenAI
+from pgvector.django import MaxInnerProduct
 from pydantic import BaseModel, Field, StringConstraints
 from typing_extensions import Annotated
 
 from api.ai import config
+from api.ai.embedder import embedder
 from api.ai.generators.utils import token_tracker
 from api.models.keyword import Keyword
 from api.models.note import Note
@@ -130,9 +133,21 @@ def generate_metadata(note: Note, created_by: User):
     with token_tracker(note.project, note, "generate-metadata", created_by):
         output = map_reduce_chain.invoke(docs)
     metadata = output["output_text"]
+
+    # Map meeting type
+    vector = embedder.embed_query(metadata["meeting_type"])
+    blank_vector = embedder.embed_documents([""])[0]
+    threshold = np.array(vector).dot(np.array(blank_vector))
+    note_type = (
+        note.project.note_types.annotate(score=-MaxInnerProduct("vector", vector))
+        .filter(score__gt=threshold)
+        .order_by("-score")
+        .first()
+    )
+
     note.title = metadata["title"]
     note.description = metadata["description"]
-    note.type = metadata["meeting_type"]
+    note.type = note_type
     note.summary = metadata["summary"]
     note.sentiment = metadata.get("sentiment")
     note.save()

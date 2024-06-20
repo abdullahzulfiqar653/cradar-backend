@@ -3,10 +3,10 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from api.views.asset.asset import AssetRetrieveUpdateDeleteView
-from api.views.asset.asset_block import AssetBlockListCreateView
-from api.views.block.block import BlockRetrieveUpdateDeleteView
+from api.views.asset.asset_block import AssetBlockListView
+from api.views.asset.asset_generate import AssetGenerateCreateView
+from api.views.block.block import BlockRetrieveView
 from api.views.block.block_cluster import BlockClusterCreateView
-from api.views.block.block_generate import BlockGenerateCreateView
 from api.views.block.block_takeaway import (
     BlockTakeawayDeleteView,
     BlockTakeawayListCreateView,
@@ -45,6 +45,7 @@ from api.views.note.note_takeaway import NoteTakeawayListCreateView
 from api.views.note.note_takeaway_type import NoteTakeawayTypeListView
 from api.views.note_template import NoteTemplateRetrieveUpdateDestroyView
 from api.views.note_template_question import NoteTemplateQuestionListView
+from api.views.note_type import NoteTypeRetrieveUpdateDestroyView
 from api.views.option import OptionRetrieveUpdateDestroyView
 from api.views.project.chart.note import ChartNoteCreateView
 from api.views.project.chart.takeaway import ChartTakeawayCreateView
@@ -55,14 +56,14 @@ from api.views.project.project_invitation import ProjectInvitationCreateView
 from api.views.project.project_keyword import ProjectKeywordListView
 from api.views.project.project_note import ProjectNoteListCreateView
 from api.views.project.project_note_template import ProjectNoteTemplateListCreateView
-from api.views.project.project_note_type import ProjectNoteTypeListView
+from api.views.project.project_note_type import ProjectNoteTypeListCreateView
 from api.views.project.project_organization import ProjectOrganizationListView
 from api.views.project.project_property import ProjectPropertyListCreateView
 from api.views.project.project_sentiment import ProjectSentimentListView
 from api.views.project.project_summary import ProjectSummaryRetrieveView
 from api.views.project.project_tag import ProjectTagListView
 from api.views.project.project_takeaway import ProjectTakeawayListView
-from api.views.project.project_takeaway_type import ProjectTakeawayTypeListView
+from api.views.project.project_takeaway_type import ProjectTakeawayTypeListCreateView
 from api.views.project.project_user import ProjectUserListView
 from api.views.project.project_user_delete import ProjectUserDeleteView
 from api.views.property.option import PropertyOptionListCreateView
@@ -79,6 +80,7 @@ from api.views.takeaway.takeaway_tag import (
     TakeawayTagCreateView,
     TakeawayTagDestroyView,
 )
+from api.views.takeaway_type import TakeawayTypeRetrieveUpdateDestroyView
 from api.views.theme.theme import ThemeRetrieveUpdateDestroyView
 from api.views.theme.theme_takeaway import (
     ThemeTakeawayDeleteView,
@@ -180,6 +182,14 @@ urlpatterns = [
         name="note-template-question-list",
     ),
     # =====================================================
+    # Report Types
+    # =====================================================
+    path(
+        "report-types/<str:pk>/",
+        NoteTypeRetrieveUpdateDestroyView.as_view(),
+        name="note-type-retrieve-update-destroy",
+    ),
+    # =====================================================
     # Projects
     # =====================================================
     path(
@@ -229,12 +239,12 @@ urlpatterns = [
     ),
     path(
         "projects/<str:project_id>/report-types/",
-        ProjectNoteTypeListView.as_view(),
+        ProjectNoteTypeListCreateView.as_view(),
         name="project-note-type-list",
     ),
     path(
         "projects/<str:project_id>/takeaway-types/",
-        ProjectTakeawayTypeListView.as_view(),
+        ProjectTakeawayTypeListCreateView.as_view(),
         name="project-takeaway-type-list",
     ),
     path(
@@ -314,6 +324,14 @@ urlpatterns = [
         name="takeaway-tag-destroy",
     ),
     # =====================================================
+    # Takeaway Type
+    # =====================================================
+    path(
+        "takeaway-types/<str:pk>/",
+        TakeawayTypeRetrieveUpdateDestroyView.as_view(),
+        name="takeaway-type-retrieve-update-destroy",
+    ),
+    # =====================================================
     # Insight
     # =====================================================
     path(
@@ -346,21 +364,21 @@ urlpatterns = [
     ),
     path(
         "assets/<str:asset_id>/blocks/",
-        AssetBlockListCreateView.as_view(),
+        AssetBlockListView.as_view(),
         name="asset-block-list-create",
+    ),
+    path(
+        "assets/<str:asset_id>/generate/",
+        AssetGenerateCreateView.as_view(),
+        name="asset-generate-create",
     ),
     # =====================================================
     # Block
     # =====================================================
     path(
         "blocks/<str:pk>/",
-        BlockRetrieveUpdateDeleteView.as_view(),
-        name="block-retrieve-update-delete",
-    ),
-    path(
-        "blocks/<str:block_id>/generate/",
-        BlockGenerateCreateView.as_view(),
-        name="block-generate-create",
+        BlockRetrieveView.as_view(),
+        name="block-retrieve",
     ),
     path(
         "blocks/<str:block_id>/takeaways/",

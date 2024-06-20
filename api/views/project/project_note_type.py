@@ -1,20 +1,16 @@
-from django.db.models import Count, F
+from django.db.models import Count
 from rest_framework import generics
 
-from api.models.note import Note
-from api.serializers.note import ProjectNoteTypeSerializer
+from api.models.note_type import NoteType
+from api.serializers.note_type import ProjectNoteTypeSerializer
 
 
-class ProjectNoteTypeListView(generics.ListAPIView):
+class ProjectNoteTypeListCreateView(generics.ListCreateAPIView):
     serializer_class = ProjectNoteTypeSerializer
-    queryset = Note.objects.all()
+    queryset = NoteType.objects.all()
     ordering = ["-report_count", "name"]
     search_fields = ["name"]
+    query_field = "vector"
 
     def get_queryset(self):
-        return (
-            Note.objects.filter(project=self.request.project)
-            .annotate(name=F("type"))
-            .values("name")
-            .annotate(report_count=Count("*"))
-        )
+        return self.request.project.note_types.annotate(report_count=Count("notes"))
