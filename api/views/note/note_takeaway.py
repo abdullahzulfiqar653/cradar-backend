@@ -18,7 +18,7 @@ class NoteTakeawayListCreateView(generics.ListCreateAPIView):
     ordering = ["created_at"]
     search_fields = [
         "title",
-        "quote",
+        "highlight__quote",
         "created_by__username",
         "created_by__first_name",
         "created_by__last_name",
