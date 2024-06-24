@@ -169,8 +169,6 @@ class NoteSerializer(serializers.ModelSerializer):
             file_content_response.raise_for_status()
             file_content = file_content_response.content
 
-            print(file_metadata)
-
             validated_data["title"] = file_metadata.get("name")
             validated_data["file"] = ContentFile(
                 file_content, name=file_metadata.get("name")
