@@ -35,8 +35,6 @@ class GoogleDriveListFilesView(APIView):
             raise ValidationError("Failed to retrieve files from Google Drive")
 
         files = response.json().get("files", [])
-        print(files[0])
-        print(files[1])
         serializer = GoogleDriveFileSerializer(files, many=True)
         return Response(serializer.data)
 
