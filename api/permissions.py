@@ -44,25 +44,6 @@ class InProjectOrWorkspace(permissions.BasePermission):
                 project = request.note_type.project
                 workspace = project.workspace
 
-            case str(s) if s.startswith("/api/report-templates/"):
-                if not hasattr(request, "note_template"):
-                    NoteTemplate = apps.get_model("api", "NoteTemplate")
-                    report_template_id = view.kwargs.get("pk") or view.kwargs.get(
-                        "report_template_id"
-                    )
-                    queryset = NoteTemplate.objects.select_related("project__workspace")
-                    request.note_template = get_instance(queryset, report_template_id)
-                project = request.note_template.project
-                if project is None:
-                    # For public report templates, project is None
-                    if request.method in permissions.SAFE_METHODS:
-                        workspace = None
-                    else:
-                        # We don't allow creating / updating public report templates
-                        raise exceptions.PermissionDenied
-                else:
-                    workspace = project.workspace
-
             case str(s) if s.startswith("/api/projects/"):
                 if not hasattr(request, "project"):
                     Project = apps.get_model("api", "Project")
@@ -238,26 +219,6 @@ class IsWorkspaceMemberFullAccess(InProjectOrWorkspace):
             return False
         else:
             return True
-
-
-class PublicNoteTemplateReadOnly(permissions.IsAuthenticated):
-    def has_permission(self, request, view):
-        if not super().has_permission(request, view):
-            return False
-        if (
-            request.path.startswith("/api/report-templates/")
-            and request.method in permissions.SAFE_METHODS
-        ):
-            if not hasattr(request, "note_template"):
-                NoteTemplate = apps.get_model("api", "NoteTemplate")
-                report_template_id = view.kwargs.get("pk") or view.kwargs.get(
-                    "report_template_id"
-                )
-                queryset = NoteTemplate.objects.select_related("project__workspace")
-                request.note_template = get_instance(queryset, report_template_id)
-            if request.note_template.project is None:
-                return True
-        return False
 
 
 IsOwnerEditorOrViewerReadOnly = (

@@ -59,7 +59,7 @@ class TestProjectUserListView(APITestCase):
                 "role": WorkspaceUser.Role.VIEWER,
             },
         ]
-        self.assertEqual(response.json(), expected_data)
+        self.assertCountEqual(response.json(), expected_data)
 
     def test_outsider_list_project_users(self):
         self.client.force_authenticate(self.outsider)

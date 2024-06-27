@@ -120,7 +120,7 @@ class TestAssetGenerateCreateView(APITestCase):
             url,
             data={
                 "filter": "priority=High",
-                "question": "What is this?",
+                "instruction": "What is this?",
             },
         )
 

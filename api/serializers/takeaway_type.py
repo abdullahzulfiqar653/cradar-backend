@@ -1,13 +1,12 @@
 from rest_framework import serializers
 
-from api.ai.embedder import embedder
 from api.models.takeaway_type import TakeawayType
 
 
 class TakeawayTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TakeawayType
-        fields = ["id", "name", "project"]
+        fields = ["id", "name", "project", "definition"]
 
     def validate_name(self, name):
         # Validation during creation
@@ -34,12 +33,4 @@ class TakeawayTypeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["project"] = self.context["request"].project
-        validated_data["vector"] = embedder.embed_documents([validated_data["name"]])[0]
         return super().create(validated_data)
-
-    def update(self, instance, validated_data):
-        if "name" in validated_data:
-            validated_data["vector"] = embedder.embed_documents(
-                [validated_data["name"]]
-            )[0]
-        return super().update(instance, validated_data)

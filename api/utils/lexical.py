@@ -91,11 +91,36 @@ class LexicalProcessor:
                 return text
 
     def to_markdown(self):
-        if self.dict["type"] == "text":
-            text = self.dict["text"]
-        else:
-            text = "".join(node.to_markdown() for node in self.children)
+        # Setting the content
+        match self.dict["type"]:
+            case "text":
+                text = self.dict["text"]
+            case "Question":
+                text = "<cursor/>\n"
+            case "Takeaways":
+                from api.models.block import Block
 
+                block = Block.objects.get(id=self.dict["block_id"])
+                text = (
+                    "Takeaways:\n"
+                    + "- "
+                    + "\n- ".join(takeaway.title for takeaway in block.takeaways.all())
+                    + "\n"
+                )
+            case "Themes":
+                from api.models.block import Block
+
+                block = Block.objects.get(id=self.dict["block_id"])
+                text = (
+                    "Themes:\n"
+                    + "- "
+                    + "\n- ".join(theme.title for theme in block.themes.all())
+                    + "\n"
+                )
+            case _:
+                text = "".join(node.to_markdown() for node in self.children)
+
+        # Setting the format
         match self.dict["type"]:
             case "paragraph":
                 return text + "\n\n"
@@ -177,3 +202,18 @@ class LexicalProcessor:
             i = node.parent.dict["children"].index(node.dict)
             node.parent.dict["children"][i : i + 1] = replacing_nodes
         return True
+
+    def append(self, another: LexicalProcessor):
+        another = deepcopy(another)
+        self.dict["children"].extend(another.dict["children"])
+        return self
+
+    def add_block(self, block):
+        self.dict["children"].append(
+            {
+                "block_id": block.id,
+                "type": block.type,
+                "version": 1,
+            }
+        )
+        return self

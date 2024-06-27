@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "ordered_model",
     "storages",
     "django_cleanup",  # To delete the file when the model instance that contains the file is deleted.
+    "django_celery_results",
 ]
 
 MIDDLEWARE = [
@@ -292,12 +293,13 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Celery config
 CELERY_BROKER_URL = env("CELERY_BROKER_URL")
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "django-cache"
 
 # App Quotas
 DURATION_MINUTE_SINGLE_FILE = env("DURATION_MINUTE_SINGLE_FILE", cast=int)
 DURATION_MINUTE_WORKSPACE = env("DURATION_MINUTE_WORKSPACE", cast=int)
 STORAGE_GB_WORKSPACE = env("STORAGE_GB_WORKSPACE", cast=int)
-NOTE_QUESTION_QUOTA = env("NOTE_QUESTION_QUOTA", cast=int)
 
 # Health check settings
 DJANGO_EASY_HEALTH_CHECK = {
@@ -305,6 +307,12 @@ DJANGO_EASY_HEALTH_CHECK = {
     "RETURN_STATUS_CODE": 200,
     "RETURN_BYTE_DATA": "Success",
 }
+
+# Slack Credentials
+SLACK_CLIENT_ID = os.getenv("SLACK_CLIENT_ID")
+SLACK_CLIENT_SECRET = os.getenv("SLACK_CLIENT_SECRET")
+SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
+SLACK_REDIRECT_URI = os.getenv("SLACK_REDIRECT_URI")
 
 # Demo project settings
 DEMO_PROJECT_ID = env("DEMO_PROJECT_ID", default=None)

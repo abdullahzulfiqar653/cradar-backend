@@ -33,7 +33,7 @@ class TestProjectTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type1 = TakeawayType.objects.create(
-            name="takeaway type 1", project=self.project, vector=np.random.rand(1536)
+            name="takeaway type 1", project=self.project
         )
         self.takeaway1 = Takeaway.objects.create(
             title="takeaway 1",
@@ -47,7 +47,7 @@ class TestProjectTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type2 = TakeawayType.objects.create(
-            name="takeaway type 2", project=self.project, vector=np.random.rand(1536)
+            name="takeaway type 2", project=self.project
         )
         self.takeaway2 = Takeaway.objects.create(
             title="takeaway 2",
@@ -59,7 +59,7 @@ class TestProjectTakeawayListView(APITestCase):
 
         # Takeaway type that is not attached to any takeaway
         self.takeaway_type3 = TakeawayType.objects.create(
-            name="takeaway type 3", project=self.project, vector=np.random.rand(1536)
+            name="takeaway type 3", project=self.project
         )
 
         self.url = f"/api/projects/{self.project.id}/takeaway-types/"
@@ -71,16 +71,19 @@ class TestProjectTakeawayListView(APITestCase):
                 "id": self.takeaway_type1.id,
                 "name": self.takeaway_type1.name,
                 "project": self.takeaway_type1.project.id,
+                "definition": "",
             },
             {
                 "id": self.takeaway_type2.id,
                 "name": self.takeaway_type2.name,
                 "project": self.takeaway_type1.project.id,
+                "definition": "",
             },
             {
                 "id": self.takeaway_type3.id,
                 "name": self.takeaway_type3.name,
                 "project": self.takeaway_type1.project.id,
+                "definition": "",
             },
         ]
         self.client.force_authenticate(self.user)
@@ -93,7 +96,7 @@ class TestProjectTakeawayListView(APITestCase):
         self.client.force_authenticate(self.user)
         response = self.client.post(
             self.url,
-            {"name": "new takeaway type", "vector": np.random.rand(1536).tolist()},
+            {"name": "new takeaway type", "definition": "new definition"},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(TakeawayType.objects.filter(project=self.project).count(), 4)
@@ -102,7 +105,7 @@ class TestProjectTakeawayListView(APITestCase):
         self.client.force_authenticate(self.user)
         response = self.client.post(
             self.url,
-            {"name": self.takeaway_type1.name, "vector": np.random.rand(1536).tolist()},
+            {"name": self.takeaway_type1.name, "definition": "new definition"},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(

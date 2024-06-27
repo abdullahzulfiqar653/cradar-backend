@@ -159,27 +159,7 @@ class TestProjectNoteListCreateView(APITestCase):
         response = self.client.post(url, data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_user_create_report_with_more_than_8_questions(self):
-        data = {
-            "title": "User can create report.",
-            "questions": [
-                {"title": "question 1"},
-                {"title": "question 2"},
-                {"title": "question 3"},
-                {"title": "question 4"},
-                {"title": "question 5"},
-                {"title": "question 6"},
-                {"title": "question 7"},
-                {"title": "question 8"},
-                {"title": "question 9"},
-            ],
-        }
-        self.client.force_authenticate(self.user)
-        url = f"/api/projects/{self.project.id}/reports/"
-        response = self.client.post(url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @patch("api.tasks.analyze_new_note.delay")
+    @patch("api.tasks.analyze_new_note.delay_on_commit")
     def test_user_create_report_with_file(self, mocked_analyze: Mock):
         data = {
             "title": "User can create report.",
@@ -206,7 +186,7 @@ class TestProjectNoteListCreateView(APITestCase):
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
             mocked_analyze.assert_called_once()
 
-    @patch("api.tasks.analyze_new_note.delay")
+    @patch("api.tasks.analyze_new_note.delay_on_commit")
     def test_user_create_report_with_url(self, mocked_analyze: Mock):
         data = {
             "title": "User can create report.",

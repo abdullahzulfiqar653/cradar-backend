@@ -1,11 +1,9 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
-from api.models.project import Project
 from api.models.workspace import Workspace
 from api.models.workspace_user import WorkspaceUser
 from api.permissions import IsWorkspaceMemberReadOnly, IsWorkspaceOwner
-from api.serializers.project import ProjectSerializer
 from api.serializers.user import WorkspaceUserSerializer
 from api.serializers.workspace import WorkspaceSerializer
 
@@ -35,16 +33,3 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return self.request.user.workspaces.all()
-
-
-class WorkspaceProjectListCreateView(generics.ListCreateAPIView):
-    queryset = Project.objects.all()
-    serializer_class = ProjectSerializer
-    ordering = ["-created_at"]
-
-    def get_queryset(self):
-        user = self.request.user
-        workspace = self.request.workspace
-        return Project.objects.filter(workspace=workspace, users=user).select_related(
-            "workspace"
-        )

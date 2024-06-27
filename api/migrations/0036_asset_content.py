@@ -17,6 +17,8 @@ def migrate_assets_content_to_lexical(apps, schema_editor):
 
     Asset = apps.get_model("api", "Asset")
     assets = list(Asset.objects.all())
+    if len(assets) == 0:
+        return
     new_asset_contents = []
     blocks = {asset.id: list(asset.blocks.order_by("order")) for asset in assets}
     with sync_playwright() as playwright:

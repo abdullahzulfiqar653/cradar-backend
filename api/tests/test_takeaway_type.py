@@ -1,6 +1,5 @@
 import logging
 
-import numpy as np
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -28,10 +27,10 @@ class TestTakeawayTypeRetrieveUpdateDestroyView(APITestCase):
         self.project.users.add(self.user)
 
         self.takeaway_type1 = TakeawayType.objects.create(
-            name="Takeaway-type-1", project=self.project, vector=np.random.rand(1536)
+            name="Takeaway-type-1", project=self.project
         )
         self.takeaway_type2 = TakeawayType.objects.create(
-            name="Takeaway-type-2", project=self.project, vector=np.random.rand(1536)
+            name="Takeaway-type-2", project=self.project
         )
         return super().setUp()
 
@@ -43,6 +42,7 @@ class TestTakeawayTypeRetrieveUpdateDestroyView(APITestCase):
             "id": self.takeaway_type1.id,
             "name": self.takeaway_type1.name,
             "project": self.project.id,
+            "definition": "",
         }
         self.assertEqual(response.data, expected_result)
 
@@ -53,14 +53,9 @@ class TestTakeawayTypeRetrieveUpdateDestroyView(APITestCase):
             {"name": "Updated name"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        original_vector = np.array(self.takeaway_type1.vector)
 
         self.takeaway_type1.refresh_from_db()
         self.assertEqual(self.takeaway_type1.name, "Updated name")
-
-        # Check that the vector is updated
-        current_vector = np.array(self.takeaway_type1.vector)
-        self.assertFalse(np.array_equal(original_vector, current_vector))
 
     def test_user_update_takeaway_type_with_existing_name(self):
         self.client.force_authenticate(self.user)
@@ -101,17 +96,6 @@ class TestTakeawayTypeRetrieveUpdateDestroyView(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(
             TakeawayType.objects.filter(id=self.takeaway_type1.id).exists()
-        )
-
-    def test_user_delete_last_takeaway_type(self):
-        self.takeaway_type1.delete()
-        self.client.force_authenticate(self.user)
-        response = self.client.delete(f"/api/takeaway-types/{self.takeaway_type2.id}/")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(TakeawayType.objects.filter(id=self.takeaway_type2.id).exists())
-        self.assertEqual(
-            response.data,
-            {"detail": "The takeaway type list must not be empty."},
         )
 
     def test_outsider_retrieve_takeaway_type(self):

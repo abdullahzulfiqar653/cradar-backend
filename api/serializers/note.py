@@ -13,10 +13,8 @@ from api.models.keyword import Keyword
 from api.models.note import Note
 from api.models.note_type import NoteType
 from api.models.organization import Organization
-from api.models.question import Question
 from api.serializers.note_type import NoteTypeSerializer
 from api.serializers.organization import OrganizationSerializer
-from api.serializers.question import QuestionSerializer
 from api.serializers.tag import KeywordSerializer
 from api.serializers.user import UserSerializer
 from api.utils.lexical import LexicalProcessor
@@ -29,7 +27,6 @@ class NoteSerializer(serializers.ModelSerializer):
     takeaway_count = serializers.IntegerField(read_only=True)
     author = UserSerializer(read_only=True)
     keywords = KeywordSerializer(many=True, required=False)
-    questions = QuestionSerializer(many=True, required=False)
     summary = serializers.JSONField(required=False, default=[])
     organizations = OrganizationSerializer(many=True, required=False)
     google_drive_file_id = serializers.CharField(write_only=True, required=False)
@@ -46,13 +43,11 @@ class NoteSerializer(serializers.ModelSerializer):
         model = Note
         fields = [
             "id",
-            "code",
             "takeaway_count",
             "author",
             "is_analyzing",
             "is_auto_tagged",
             "keywords",
-            "questions",
             "summary",
             "title",
             "created_at",
@@ -62,18 +57,18 @@ class NoteSerializer(serializers.ModelSerializer):
             "description",
             "type",
             "type_id",
-            "is_published",
             "file",
             "file_type",
             "file_name",
             "url",
             "sentiment",
+            "slack_channel_id",
+            "slack_team_id",
             "google_drive_file_id",
             "google_drive_file_timestamp",
         ]
         read_only_fields = [
             "id",
-            "code",
             "author",
             "is_analyzing",
             "is_auto_tagged",
@@ -108,10 +103,18 @@ class NoteSerializer(serializers.ModelSerializer):
             raise exceptions.ValidationError("Content exceed length limit.")
         return content
 
-    def validate_questions(self, value):
-        if len(value) > 8:
-            raise exceptions.ValidationError("Please provide at most 8 questions.")
-        return value
+    def validate(self, data):
+        slack_team_id = data.get("slack_team_id")
+        slack_channel_id = data.get("slack_channel_id")
+
+        if (slack_team_id is None and slack_channel_id is not None) or (
+            slack_team_id is not None and slack_channel_id is None
+        ):
+            raise serializers.ValidationError(
+                "slack_team_id and slack_channel_id must either both be non-null or both be null."
+            )
+
+        return data
 
     def add_organizations(self, note, organizations):
         organizations_to_create = [
@@ -131,17 +134,6 @@ class NoteSerializer(serializers.ModelSerializer):
             name__in=[keyword["name"] for keyword in keywords]
         )
         note.keywords.add(*keywords_to_add)
-
-    def add_questions(self, note, questions):
-        questions_to_create = [
-            Question(title=question["title"], project=note.project)
-            for question in questions
-        ]
-        Question.objects.bulk_create(questions_to_create, ignore_conflicts=True)
-        questions_to_add = Question.objects.filter(project=note.project).filter(
-            title__in=[question["title"] for question in questions]
-        )
-        note.questions.add(*questions_to_add)
 
     def create(self, validated_data):
         google_drive_file_id = validated_data.pop("google_drive_file_id", [])
@@ -180,25 +172,22 @@ class NoteSerializer(serializers.ModelSerializer):
             )
         organizations = validated_data.pop("organizations", [])
         keywords = validated_data.pop("keywords", [])
-        questions = validated_data.pop("questions", [])
         note = Note.objects.create(**validated_data)
         self.add_organizations(note, organizations)
         self.add_keywords(note, keywords)
-        self.add_questions(note, questions)
         return note
 
 
 class NoteUpdateSerializer(NoteSerializer):
     """
-    Do not allow users to update keywords and questions through note endpoint directly.
-    They should use the dedicated endpoints to update keywords and questions instead.
+    Do not allow users to update keywords through note endpoint directly.
+    They should use the dedicated endpoints to update keywords instead.
     """
 
     keywords = None
-    questions = None
 
     class Meta(NoteSerializer.Meta):
-        fields = list(set(NoteSerializer.Meta.fields) - {"keywords", "questions"})
+        fields = list(set(NoteSerializer.Meta.fields) - {"keywords"})
 
     def update(self, note: Note, validated_data):
         if note.is_analyzing:

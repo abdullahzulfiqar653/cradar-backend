@@ -10,7 +10,6 @@ from api.ai import config
 from api.ai.generators.utils import token_tracker
 from api.models.block import Block
 from api.models.takeaway import Takeaway
-from api.models.theme import Theme
 from api.models.user import User
 
 
@@ -46,8 +45,11 @@ def cluster_block(block: Block, takeaways: QuerySet[Takeaway], created_by: User)
     if block.type != Block.Type.THEMES:
         raise exceptions.ValidationError("The block type must be themes.")
 
-    if takeaways.count() > 200:
-        raise exceptions.PermissionDenied("Too many takeaways to analyze.")
+    takeaway_count = takeaways.count()
+    if takeaway_count < 2:
+        raise exceptions.ValidationError("Not enough takeaways to analyze.")
+    if takeaway_count > 200:
+        raise exceptions.ValidationError("Too many takeaways to analyze.")
 
     # We only consider takeaways in the same project as block so to not mess up
     takeaways = takeaways.filter(note__project=block.asset.project)
@@ -67,8 +69,7 @@ def cluster_block(block: Block, takeaways: QuerySet[Takeaway], created_by: User)
         with token_tracker(block.asset.project, block, "cluster-block", created_by):
             output = chain.invoke({"text": text})[0]
 
-        theme = Theme.objects.create(
-            block=block,
+        theme = block.themes.create(
             title=output.title,
             description=output.description,
         )

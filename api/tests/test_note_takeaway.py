@@ -29,12 +29,8 @@ class TestNoteTakeawayListCreateView(APITestCase):
         self.project = Project.objects.create(name="project", workspace=workspace)
         self.project.users.add(self.user)
 
-        self.takeaway_type1 = self.project.takeaway_types.create(
-            name="type 1", vector=np.random.rand(1536)
-        )
-        self.takeaway_type2 = self.project.takeaway_types.create(
-            name="type 2", vector=np.random.rand(1536)
-        )
+        self.takeaway_type1 = self.project.takeaway_types.create(name="type 1")
+        self.takeaway_type2 = self.project.takeaway_types.create(name="type 2")
 
         self.note = Note.objects.create(
             title="note 1", project=self.project, author=self.user

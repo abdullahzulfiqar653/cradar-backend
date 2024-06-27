@@ -2,20 +2,19 @@ from api.models.asset import Asset
 from api.models.block import Block
 from api.models.highlight import Highlight
 from api.models.insight import Insight
+from api.models.integrations.slack.slack_message_buffer import SlackMessageBuffer
+from api.models.integrations.slack.slack_oauth_state import SlackOAuthState
+from api.models.integrations.slack.slack_user import SlackUser
 from api.models.invitation import Invitation
 from api.models.keyword import Keyword
 from api.models.note import Note
 from api.models.note_property import NoteProperty
 from api.models.note_property_option import NotePropertyOption
-from api.models.note_question import NoteQuestion
-from api.models.note_template import NoteTemplate
-from api.models.note_template_question import NoteTemplateQuestion
 from api.models.note_type import NoteType
 from api.models.option import Option
 from api.models.organization import Organization
 from api.models.project import Project
 from api.models.property import Property
-from api.models.question import Question
 from api.models.tag import Tag
 from api.models.takeaway import Takeaway
 from api.models.takeaway_type import TakeawayType
@@ -39,15 +38,14 @@ __all__ = [
     "Keyword",
     "Invitation",
     "Workspace",
-    "NoteQuestion",
-    "NoteTemplate",
-    "NoteTemplateQuestion",
-    "Question",
     "TranscriptionUsage",
     "TokenUsage",
     "Asset",
     "Block",
     "UserSavedTakeaway",
+    "SlackUser",
+    "SlackOAuthState",
+    "SlackMessageBuffer",
     "Theme",
     "WorkspaceUser",
     "Property",

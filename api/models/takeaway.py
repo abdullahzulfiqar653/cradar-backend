@@ -2,7 +2,6 @@ from django.db import models
 from pgvector.django import HnswIndex, VectorField
 from shortuuid.django_fields import ShortUUIDField
 
-from api.models.question import Question
 from api.models.tag import Tag
 from api.models.takeaway_type import TakeawayType
 from api.models.user import User
@@ -23,9 +22,6 @@ class Takeaway(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    question = models.ForeignKey(
-        Question, on_delete=models.SET_NULL, related_name="takeaways", null=True
-    )
     tags = models.ManyToManyField(Tag, blank=True, related_name="takeaways")
     created_by = models.ForeignKey(
         User,
@@ -40,7 +36,6 @@ class Takeaway(models.Model):
     note = models.ForeignKey(
         "api.Note", on_delete=models.CASCADE, related_name="takeaways"
     )
-    code = models.CharField(max_length=10, unique=True)
 
     class Meta:
         indexes = [
@@ -53,11 +48,3 @@ class Takeaway(models.Model):
 
     def __str__(self):
         return self.title
-
-    def save(self, *args, **kwargs):
-        if self.code == "":
-            self.code = f"{self.note.code}-{self.note.takeaway_sequence + 1}"
-            note = self.note
-            note.takeaway_sequence += 1
-            note.save()
-        super().save(*args, **kwargs)

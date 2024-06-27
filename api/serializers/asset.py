@@ -2,12 +2,18 @@ from rest_framework import serializers
 
 from api.models.asset import Asset
 from api.models.block import Block
+from api.models.note import Note
+from api.serializers.task import TaskResultSerializer
 from api.serializers.user import UserSerializer
 from api.utils.lexical import LexicalProcessor
 
 
 class AssetSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
+    report_ids = serializers.PrimaryKeyRelatedField(
+        source="notes", queryset=Note.objects.none(), many=True, write_only=True
+    )
+    task = TaskResultSerializer(read_only=True)
 
     class Meta:
         model = Asset
@@ -15,13 +21,25 @@ class AssetSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
-            "filter",
+            "report_ids",
             "content",
             "created_at",
             "updated_at",
             "created_by",
+            "task",
         ]
-        extra_kwargs = {"filter": {"default": ""}}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if hasattr(request, "project"):
+            self.fields["report_ids"].child_relation.queryset = (
+                request.project.notes.all()
+            )
+        elif hasattr(request, "asset"):
+            self.fields["report_ids"].child_relation.queryset = (
+                request.asset.project.notes.all()
+            )
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -30,6 +48,10 @@ class AssetSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, asset: Asset, validated_data):
+        if asset.task and asset.task.status in {"STARTED", "PROGRESS"}:
+            raise serializers.ValidationError(
+                "Asset is being analyzed. Please wait for the analysis to complete."
+            )
         if "content" in validated_data:
             self.update_content_blocks(asset, validated_data)
         return super().update(asset, validated_data)
@@ -75,11 +97,11 @@ class AssetGenerateSerializer(serializers.Serializer):
         help_text="The url query string to filter takeaways.",
         default=None,
     )
-    question = serializers.CharField(write_only=True)
+    instruction = serializers.CharField(write_only=True)
     markdown = serializers.CharField(read_only=True)
 
     class Meta:
-        fields = ["filter", "markdown", "question"]
+        fields = ["filter", "markdown", "instruction"]
 
     def create(self, validated_data):
         return super().create(validated_data)

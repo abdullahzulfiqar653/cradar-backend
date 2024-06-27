@@ -35,12 +35,8 @@ class TestProjectTakeawayListView(APITestCase):
         self.note_type2 = NoteType.objects.create(
             name="note type 2", project=self.project, vector=np.random.rand(1536)
         )
-        self.takeaway_type1 = self.project.takeaway_types.create(
-            name="takeaway type 1", vector=np.random.rand(1536)
-        )
-        self.takeaway_type2 = self.project.takeaway_types.create(
-            name="takeaway type 2", vector=np.random.rand(1536)
-        )
+        self.takeaway_type1 = self.project.takeaway_types.create(name="takeaway type 1")
+        self.takeaway_type2 = self.project.takeaway_types.create(name="takeaway type 2")
 
         self.note1 = Note.objects.create(
             title="note 1", project=self.project, author=self.user, type=self.note_type1
@@ -57,10 +53,11 @@ class TestProjectTakeawayListView(APITestCase):
         self.note2 = Note.objects.create(
             title="note 1", project=self.project, author=self.user, type=self.note_type2
         )
+        bot = User.objects.get(username="bot@raijin.ai")
         self.takeaway2 = Takeaway.objects.create(
             title="takeaway 2",
             note=self.note2,
-            created_by=self.user,
+            created_by=bot,
             type=self.takeaway_type2,
             priority="Low",
             vector=np.random.rand(1536),
@@ -77,6 +74,27 @@ class TestProjectTakeawayListView(APITestCase):
         self.assertCountEqual(
             response_takeaway_ids, [self.takeaway1.id, self.takeaway2.id]
         )
+
+    def test_user_list_project_takeaways_filter_created_by_bot(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.get(f"{self.url}?created_by=bot@raijin.ai")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_takeaway_ids = [takeaway["id"] for takeaway in response.json()]
+        self.assertCountEqual(response_takeaway_ids, [self.takeaway2.id])
+
+    def test_user_list_project_takeaways_filter_is_created_by_bot(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.get(f"{self.url}?is_created_by_bot=true")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_takeaway_ids = [takeaway["id"] for takeaway in response.json()]
+        self.assertCountEqual(response_takeaway_ids, [self.takeaway2.id])
+
+    def test_user_list_project_takeaways_filter_is_not_created_by_bot(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.get(f"{self.url}?is_created_by_bot=false")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_takeaway_ids = [takeaway["id"] for takeaway in response.json()]
+        self.assertCountEqual(response_takeaway_ids, [self.takeaway1.id])
 
     def test_user_list_project_takeaways_filter_note(self):
         self.client.force_authenticate(self.user)

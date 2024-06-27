@@ -34,9 +34,7 @@ class TestTakeawayRetrieveUpdateDeleteView(APITestCase):
             title="note", project=self.project, author=self.user
         )
 
-        self.takeaway_type = self.project.takeaway_types.create(
-            name="takeaway type", vector=np.random.rand(1536)
-        )
+        self.takeaway_type = self.project.takeaway_types.create(name="takeaway type")
         self.highlight = Highlight.objects.create(
             title="highlight",
             note=self.note,

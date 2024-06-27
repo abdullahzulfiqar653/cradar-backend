@@ -3,7 +3,7 @@ from pgvector.django import MaxInnerProduct
 from rest_framework import generics
 
 from api.ai.embedder import embedder
-from api.ai.generators.block_generator import generate_content
+from api.ai.generators.asset_generator import generate_content
 from api.filters.takeaway import TakeawayFilter
 from api.models.takeaway import Takeaway
 from api.serializers.asset import AssetGenerateSerializer
@@ -23,6 +23,7 @@ class AssetGenerateCreateView(generics.CreateAPIView):
     ordering = ["created_at"]
     search_fields = [
         "title",
+        "quote",
         "created_by__username",
         "created_by__first_name",
         "created_by__last_name",
@@ -32,16 +33,14 @@ class AssetGenerateCreateView(generics.CreateAPIView):
         asset = self.request.asset
 
         # Filter takeaways
-        filter_string = self.request.data.get("filter")
-        if filter_string is None:
-            filter_string = asset.filter
+        filter_string = self.request.data.get("filter", "")
         self.request._request.GET = QueryDict(filter_string)
-        takeaways = Takeaway.objects.filter(note__project=self.request.asset.project)
+        takeaways = Takeaway.objects.filter(note__assets=asset)
         takeaways = self.filter_queryset(takeaways)
 
-        question = self.request.data["question"]
-        vector = embedder.embed_query(question)
+        instruction = self.request.data["instruction"]
+        vector = embedder.embed_query(instruction)
         takeaways = takeaways.order_by(MaxInnerProduct("vector", vector))
 
-        output = generate_content(asset, question, takeaways, self.request.user)
+        output = generate_content(asset, instruction, takeaways, self.request.user)
         serializer.validated_data["markdown"] = output

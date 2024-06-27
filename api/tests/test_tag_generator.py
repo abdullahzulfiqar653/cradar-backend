@@ -1,13 +1,15 @@
+import json
 import logging
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from rest_framework import status
 from rest_framework.test import APITestCase
 
+from api.ai.generators.tag_generator import generate_tags
 from api.models.note import Note
 from api.models.note_type import NoteType
 from api.models.project import Project
+from api.models.takeaway_type import TakeawayType
 from api.models.user import User
 from api.models.workspace import Workspace
 
@@ -42,11 +44,20 @@ class TestNoteTagGenerateView(APITestCase):
             author=self.user,
             type=self.note_type1,
         )
+        self.takeaway_type1 = TakeawayType.objects.create(
+            name="Takeaway-type-1", project=self.project
+        )
         self.takeaway1 = self.note.takeaways.create(
-            title="takeaway 1", created_by=self.user, vector=np.random.rand(1536)
+            title="takeaway 1",
+            created_by=self.user,
+            vector=np.random.rand(1536),
+            type=self.takeaway_type1,
         )
         self.takeaway2 = self.note.takeaways.create(
-            title="takeaway 1", created_by=self.user, vector=np.random.rand(1536)
+            title="takeaway 1",
+            created_by=self.user,
+            vector=np.random.rand(1536),
+            type=self.takeaway_type1,
         )
         return super().setUp()
 
@@ -75,12 +86,28 @@ class TestNoteTagGenerateView(APITestCase):
 
         mocked_invoke.return_value = MockedTakeawayListSchema
 
-        self.client.force_authenticate(self.user)
-        url = f"/api/reports/{self.note.id}/tags/generate/"
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        generate_tags(self.note, self.project.takeaway_types.all(), self.user)
 
         mocked_invoke.assert_called_once()
+        self.assertDictEqual(
+            mocked_invoke.call_args[0][0],
+            {
+                "takeaways": json.dumps(
+                    {
+                        "takeaways": [
+                            {
+                                "id": self.takeaway1.id,
+                                "message": self.takeaway1.title,
+                            },
+                            {
+                                "id": self.takeaway2.id,
+                                "message": self.takeaway2.title,
+                            },
+                        ]
+                    }
+                )
+            },
+        )
 
         self.takeaway1.refresh_from_db()
         self.assertCountEqual(

@@ -4,6 +4,7 @@ from decimal import Decimal
 from time import time
 from urllib.parse import urlparse
 
+from django.db.models import QuerySet
 from django.utils import translation
 from pydub.utils import mediainfo
 
@@ -11,15 +12,11 @@ from api.ai.downloaders.web_downloader import WebDownloader
 from api.ai.downloaders.youtube_downloader import YoutubeDownloader
 from api.ai.generators.metadata_generator import generate_metadata
 from api.ai.generators.tag_generator import generate_tags
-from api.ai.generators.takeaway_generator_default_question import (
-    generate_takeaways_default_question,
-)
-from api.ai.generators.takeaway_generator_with_questions import (
-    generate_takeaways_with_questions,
-)
+from api.ai.generators.takeaway_generator import generate_takeaways
 from api.ai.transcribers import openai_transcriber
 from api.ai.transcribers.transcriber_router import TranscriberRouter
 from api.models.note import Note
+from api.models.takeaway_type import TakeawayType
 from api.models.usage.transciption import TranscriptionUsage
 from api.models.user import User
 from api.storage_backends import PrivateMediaStorage
@@ -84,17 +81,6 @@ class NewNoteAnalyzer:
         note.content = content.to_lexical()
         note.save()
 
-    def summarize(self, note, created_by):
-        print("========>   Generating takeaways")
-        if note.questions.count() > 0:
-            generate_takeaways_with_questions(note, note.questions.all(), created_by)
-        else:
-            generate_takeaways_default_question(note, created_by)
-        print("========>   Generating metadata")
-        generate_metadata(note, created_by)
-        print("========>   Generating tags")
-        generate_tags(note, created_by)
-
     def analyze(self, note: Note, created_by: User):
         with translation.override(note.project.language):
             print("========> Start transcribing")
@@ -105,14 +91,18 @@ class NewNoteAnalyzer:
                 self.download(note)
             end = time()
             print(f"Elapsed time: {end - start} seconds")
-            print("========> Start summarizing")
-            self.summarize(note, created_by)
+            print("========> Generating metadata")
+            generate_metadata(note, created_by)
             print("========> End analyzing")
 
 
 class ExistingNoteAnalyzer(NewNoteAnalyzer):
-    def analyze(self, note: Note, created_by: User):
+    def analyze(
+        self, note: Note, takeaway_types: QuerySet[TakeawayType], created_by: User
+    ):
         with translation.override(note.project.language):
-            print("========> Start summarizing")
-            self.summarize(note, created_by)
+            print("========> Generating takeaways")
+            generate_takeaways(note, takeaway_types, created_by)
+            print("========> Generating tags")
+            generate_tags(note, takeaway_types, created_by)
             print("========> End analyzing")

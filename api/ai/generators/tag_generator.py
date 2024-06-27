@@ -13,6 +13,7 @@ from api.ai.generators.utils import ParserErrorCallbackHandler, token_tracker
 from api.models.note import Note
 from api.models.tag import Tag
 from api.models.takeaway import Takeaway
+from api.models.takeaway_type import TakeawayType
 from api.models.user import User
 
 __all__ = ["generate_tag"]
@@ -76,8 +77,8 @@ def get_chain():
     return chain
 
 
-def generate_tags(note: Note, created_by: User):
-    chunked_takeaway_lists = chunk_takeaway_list(note)
+def generate_tags(note: Note, takeaway_types: QuerySet[TakeawayType], created_by: User):
+    chunked_takeaway_lists = chunk_takeaway_list(note, takeaway_types)
     chain = get_chain()
 
     results = []
@@ -94,10 +95,10 @@ def generate_tags(note: Note, created_by: User):
     save_takeaway_tags(note, tags, results)
 
 
-def chunk_takeaway_list(note: Note):
+def chunk_takeaway_list(note: Note, takeaway_types: QuerySet[TakeawayType]):
     token_count = 0
     chunked_takeaway_lists = [[]]
-    for takeaway in note.takeaways.all():
+    for takeaway in note.takeaways.filter(type__in=takeaway_types):
         token_count += len(encoder.encode(takeaway.title))
         if token_count < config.chunk_size:
             chunked_takeaway_lists[-1].append(

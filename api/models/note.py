@@ -1,6 +1,3 @@
-import random
-import string
-
 from django.core.exceptions import ValidationError
 from django.db import models
 from shortuuid.django_fields import ShortUUIDField
@@ -10,7 +7,6 @@ from api.models.keyword import Keyword
 from api.models.note_type import NoteType
 from api.models.organization import Organization
 from api.models.project import Project
-from api.models.question import Question
 from api.models.user import User
 from api.models.workspace import Workspace
 from api.utils.lexical import LexicalProcessor, blank_content
@@ -65,9 +61,6 @@ class Note(models.Model):
     type = models.ForeignKey(
         NoteType, on_delete=models.SET_NULL, related_name="notes", null=True
     )
-    is_published = models.BooleanField(default=False)
-    code = models.CharField(max_length=5)
-    takeaway_sequence = models.IntegerField(default=0)
 
     url = models.URLField(max_length=255, null=True)
     file = models.FileField(
@@ -85,14 +78,10 @@ class Note(models.Model):
     summary = models.JSONField(default=list)
     keywords = models.ManyToManyField(Keyword, related_name="notes")
     sentiment = models.CharField(max_length=8, choices=Sentiment.choices, null=True)
-    questions = models.ManyToManyField(
-        Question, related_name="notes", through="api.NoteQuestion"
-    )
 
-    class Meta:
-        unique_together = [
-            ["workspace", "code"],
-        ]
+    # Slack Integration
+    slack_channel_id = models.CharField(max_length=25, null=True)
+    slack_team_id = models.CharField(max_length=25, null=True)
 
     def __str__(self):
         return self.title
@@ -107,10 +96,6 @@ class Note(models.Model):
         else:
             self.file_type = None
         self.workspace = self.project.workspace
-        if not self.code:
-            # Generate random code
-            chars = string.ascii_letters[26:]
-            self.code = "".join(random.choice(chars) for _ in range(3))
         super().save(*args, **kwargs)
 
     def get_content_markdown(self):

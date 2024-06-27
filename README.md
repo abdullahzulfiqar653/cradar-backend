@@ -81,8 +81,109 @@ The cronjob is defined in cradarai/celery.py.
    objc[88793]: +[__NSCFConstantString initialize] may have been in progress in another thread when fork() was called.
    objc[88793]: +[__NSCFConstantString initialize] may have been in progress in another thread when fork() was called. We cannot safely call it or ignore it in the fork() child process. Crashing instead. Set a breakpoint on objc_initializeAfterForkError to debug.
    ```
-   Please run this before set this env var
-   `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
+   Please run this before set this env var `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
+
+# Slack Integration Documentation
+
+## Using ngrok for local testing
+
+1. Create the slack app.
+   1. Go to https://api.slack.com/apps.
+   2. Login and click on "Create New App".
+   3. Select "From an app manifest".
+   4. Select the corresponding workspace.
+   5. Paste the manifest found in xxx.
+2. Go to the Basic Information page in the slack app, copy the client id, client secret and signing secret to the .env file.
+3. Start ngrok by running `ngrok http 8000`.
+4. Add ngrok domain (starting with the uuid, without the "https://") to .env `ALLOWED_HOSTS`.
+5. Go to the Event Subscriptions page in the slack app, update the request url to `https://{backend_domain}/api/integrations/slack/events/`, check that it is verified, and click Save Changes.
+6. Go to the OAuth & Permissions in slack dashboard and set the Redirect URLs to the value below. Then set the same value to the `SLACK_REDIRECT_URI` in .env:
+   1. For local testing set `SLACK_REDIRECT_URI=https://{backend_domain}/api/integrations/slack/to-frontend/`
+   2. For prod set `SLACK_REDIRECT_URI=https://{frontend_domain}/slack/redirect`
+7. Go to frontend page and click Add To Slack button on header. Will be navigated to Slack OAuth page.
+8. Click continue and proceed with authorization after reading permissions. Will be redirected to the redirect URL provided.
+   1. For local testing, this will redirect to `{backend_domain}/api/integrations/slack/to-frontend/` which will then redirect to `{frontend_domain}/slack/redirect`. We do this because ngrok only support one port.
+   2. For production, this will redirect to `{frontend_domain}/slack/redirect` directly.
+9. The frontend redirect page will call `{backend_domain}/api/integrations/slack/oauth-redirect/` after successful authorization. This will add `SlackUser`.
+
+10. Back on Raijin, click Add Your Data.
+11. Click Slack Channel Autocomplete field to open dropdown of Slack channels. Check that channels correspond to channels in connected Slack Workspace.
+12. Select desired Slack channel. Knowledge Source will be created.
+13. Go to Slack and send test messages.
+14. Ensure that redis server is connected, ensure that celery worker and celery beat is running.
+15. If testing end-of-day buffer, wait till end of day at 23:59 to check that Knowledge Source has been updated with test messages.
+16. If testing functionality without waiting for buffer time, run:
+
+```
+python manage.py shell
+from api.tasks import process_slack_messages
+process_slack_messages()
+```
+
+Then check that Knowledge Source is updated with Slack test messages.
+
+## Overview
+
+This document provides details on integrating our application's backend with Slack, focusing on handling messages from Slack channels, mapping these to knowledge sources (notes), and updating these sources accordingly.
+
+## Prerequisites
+
+- A Slack App must have been created on Slack API website and configured with the necessary credentials and scopes: https://api.slack.com/apps
+- Required Scopes: `channels:read`, `groups:read`, `mpim:read`, `im:read` for reading functionalities, and `channels:history`, `groups:history`, `im:history`, `mpim:history` for accessing message histories. `users:read` to retrieve user info in workspace.
+- Required User Token Scopes: `channels.read` to retrieve list of channels.
+- Event Subscriptions setup in the Slack App to receive Slack events.
+- Required Bot events: `message.channels`, `message.groups`, `message.im`, `message.mpim` to allow Slack App to be triggered when messages are posted in the respective channels in the Workspace.
+
+## Integration Process
+
+### 1. Slack App Configuration
+
+Configure your Slack App with the following settings:
+
+- **OAuth & Permissions**: Set the Redirect URI to the frontend redirect page URL for example: 'https://YOUR_DOMAIN/slack/redirect'. Set the required scopes as mentioned in Prerequisites Required Scopes.
+- **Event Subscriptions**: Enable and set the request URL to the backend endpoint that processes Slack events, for example: 'https://YOUR_DOMAIN/api/integrations/slack/events/'. Subscribe to bot events as mentioned in Prerequisites Required Bot Events.
+
+### 2. OAuth & Permissions
+
+Integration initiates with OAuth where users authorize the application, allowing it to access their Slack Workspace.
+A state is generated and stored in database for verification later.
+returns a URL to the frontend to redirect to Slack OAuth page.
+
+**Endpoint to generate state and redirect user to Slack OAuth page:**
+`/api/integrations/slack/add_to_slack/`
+**View:**
+`api/views/slack/add_slack.py`
+
+Once authorized, user is redirected back to Raijin with a "code" and "state" parameters.
+We will retrieve and validate the state received with the stored state to ensure request is indeed from Slack.
+If validated, we exchange the "code" for an access token from Slack which we store for future API calls to Slack.
+
+**Endpoint to handle redirect from Slack OAuth page and exchange code for access token:**
+`/api/integrations/slack/oauth_redirect/`
+**View:**
+`api/views/slack/oauth_redirect.py`
+
+### 3. Event Handling
+
+Our backend listens for Slack events, particularly for messages to update the system accordingly.
+
+**Endpoint:** `/api/integrations/slack/events/`
+
+This endpoint secures Slack requests, handles `url_verification`, and processes `message` events through `event_callback`.
+
+### 4. Processing Slack Messages
+
+Upon a `message` event, the backend updates the corresponding note based on the notes that have the corresponding channel_id and team_id that matches that of the message.
+
+### 5. Channel to Knowledge Source (Note) Mapping
+
+`channel_id` and `team_id` is added to a Note's fields when a Note is created via the creation of a Slack Knowledge Source. `team_id` is the ID of the Slack Workspace as the sole use of `channel_id` is insufficient as an identifier since Slack channels in different Slack Workspaces can share the same `channel_id`.
+
+## Sequence Diagram
+
+Below is the sequence diagram illustrating the communication flow between the user, frontend, backend, and Slack:
+
+![Slack Integration Sequence Diagram](assets/slack_int_sequence_diagram.drawio.png)
 
 # Code practices
 

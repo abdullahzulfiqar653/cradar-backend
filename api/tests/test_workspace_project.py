@@ -87,6 +87,6 @@ class TestWorkspaceProjectListCreateView(APITestCase):
 
         # Check if default takeaway types are created
         self.assertCountEqual(
-            project.takeaway_types.values_list("name", flat=True),
+            project.takeaway_types.values("name", "definition"),
             default_takeaway_types,
         )

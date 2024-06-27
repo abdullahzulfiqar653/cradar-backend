@@ -37,7 +37,7 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return self.request.project.notes.prefetch_related(
-            "questions", "author", "organizations", "keywords"
+            "author", "organizations", "keywords"
         ).annotate(
             takeaway_count=Count("takeaways"),
         )
@@ -127,4 +127,4 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
         self.check_eligibility(serializer)
         note = serializer.save(author=self.request.user, project=self.request.project)
         if note.file or note.url:
-            analyze_new_note.delay(note.id, self.request.user.id)
+            analyze_new_note.delay_on_commit(note.id, self.request.user.id)

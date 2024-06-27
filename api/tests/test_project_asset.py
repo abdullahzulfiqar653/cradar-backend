@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from api.models.asset import Asset
+from api.models.note import Note
 from api.models.project import Project
 from api.models.user import User
 from api.models.workspace import Workspace
@@ -25,11 +26,16 @@ class TestProjectAssetListCreateView(APITestCase):
         workspace.members.add(self.user, through_defaults={"role": "Editor"})
         self.project = Project.objects.create(name="project", workspace=workspace)
         self.project.users.add(self.user)
+
+        self.note = Note.objects.create(
+            title="note 1", project=self.project, author=self.user
+        )
         return super().setUp()
 
     def test_user_create_asset(self):
         data = {
             "title": "test asset",
+            "report_ids": [self.note.id],
         }
         url = f"/api/projects/{self.project.id}/assets/"
         self.client.force_authenticate(self.user)
@@ -40,7 +46,9 @@ class TestProjectAssetListCreateView(APITestCase):
         self.assertEqual(asset.title, data["title"])
 
     def test_user_create_asset_without_title(self):
-        data = {}
+        data = {
+            "report_ids": [self.note.id],
+        }
         url = f"/api/projects/{self.project.id}/assets/"
         self.client.force_authenticate(self.user)
         response = self.client.post(url, data)
@@ -48,6 +56,15 @@ class TestProjectAssetListCreateView(APITestCase):
         response_json = response.json()
         asset = Asset.objects.get(id=response_json["id"])
         self.assertEqual(asset.title, "")
+
+    def test_user_create_asset_without_report_ids(self):
+        data = {
+            "title": "test asset",
+        }
+        url = f"/api/projects/{self.project.id}/assets/"
+        self.client.force_authenticate(self.user)
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_outsider_create_asset(self):
         data = {

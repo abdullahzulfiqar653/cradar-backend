@@ -27,11 +27,14 @@ class ProjectSerializer(serializers.ModelSerializer):
         )
 
     def create_default_takeaway_types(self, project):
-        vectors = embedder.embed_documents(default_takeaway_types)
         TakeawayType.objects.bulk_create(
             [
-                TakeawayType(name=name, project=project, vector=vector)
-                for name, vector in zip(default_takeaway_types, vectors)
+                TakeawayType(
+                    name=takeaway_type["name"],
+                    definition=takeaway_type["definition"],
+                    project=project,
+                )
+                for takeaway_type in default_takeaway_types
             ]
         )
 

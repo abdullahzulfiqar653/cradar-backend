@@ -1,4 +1,5 @@
 import logging
+from unittest.mock import patch
 
 import numpy as np
 from rest_framework import status
@@ -12,7 +13,7 @@ from api.models.user import User
 from api.models.workspace import Workspace
 
 
-class TestNoteTakeawayListView(APITestCase):
+class TestNoteTakeawayTypeListCreateView(APITestCase):
     def setUp(self) -> None:
         """Reduce the log level to avoid errors like 'not found'"""
         logger = logging.getLogger("django.request")
@@ -33,7 +34,7 @@ class TestNoteTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type1 = TakeawayType.objects.create(
-            name="takeaway type 1", project=self.project, vector=np.random.rand(1536)
+            name="takeaway type 1", project=self.project
         )
         self.takeaway1 = Takeaway.objects.create(
             title="takeaway 1",
@@ -47,7 +48,7 @@ class TestNoteTakeawayListView(APITestCase):
             title="note 1", project=self.project, author=self.user
         )
         self.takeaway_type2 = TakeawayType.objects.create(
-            name="takeaway type 2", project=self.project, vector=np.random.rand(1536)
+            name="takeaway type 2", project=self.project
         )
         self.takeaway2 = Takeaway.objects.create(
             title="takeaway 2",
@@ -58,13 +59,14 @@ class TestNoteTakeawayListView(APITestCase):
         )
         return super().setUp()
 
-    def test_user_list_project_takeaway_types(self):
+    def test_user_list_note_takeaway_types(self):
         # Test note 1
         expected_data = [
             {
                 "id": self.takeaway_type1.id,
                 "name": self.takeaway_type1.name,
                 "project": self.takeaway_type1.project.id,
+                "definition": "",
             },
         ]
         url = f"/api/reports/{self.note1.id}/takeaway-types/"
@@ -79,6 +81,7 @@ class TestNoteTakeawayListView(APITestCase):
                 "id": self.takeaway_type2.id,
                 "name": self.takeaway_type2.name,
                 "project": self.takeaway_type1.project.id,
+                "definition": "",
             },
         ]
         url = f"/api/reports/{self.note2.id}/takeaway-types/"
@@ -86,6 +89,26 @@ class TestNoteTakeawayListView(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertCountEqual(response.json(), expected_data)
+
+    @patch("api.tasks.analyze_existing_note.delay")
+    def test_user_create_note_takeaway_type(self, mocked_delay):
+        url = f"/api/reports/{self.note1.id}/takeaway-types/"
+        data = {"takeaway_type_ids": [self.takeaway_type1.id, self.takeaway_type2.id]}
+        self.client.force_authenticate(self.user)
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mocked_delay.assert_called_once_with(
+            self.note1.id,
+            [self.takeaway_type1.id, self.takeaway_type2.id],
+            self.user.id,
+        )
+
+    def test_user_create_note_takeaway_type_with_only_invalid_takeaway_type(self):
+        url = f"/api/reports/{self.note1.id}/takeaway-types/"
+        data = {"takeaway_type_ids": ["invalid_id"]}
+        self.client.force_authenticate(self.user)
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_outsider_list_project_takeaway_types(self):
         url = f"/api/reports/{self.note1.id}/takeaway-types/"

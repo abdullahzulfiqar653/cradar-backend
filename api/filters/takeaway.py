@@ -3,7 +3,6 @@ from django_filters import rest_framework as filters
 from api.filters.patch import ModelMultipleChoiceFilter
 from api.models.note import Note
 from api.models.note_type import NoteType
-from api.models.project import Project
 from api.models.tag import Tag
 from api.models.takeaway import Takeaway
 from api.models.takeaway_type import TakeawayType
@@ -16,23 +15,27 @@ def users_in_scope(request):
 
     project_id = kwargs.get("project_id")
     if project_id is not None:
-        return Project.objects.get(id=project_id).users.all()
+        return User.objects.filter(
+            created_takeaways__note__project=project_id
+        ).distinct()
 
     report_id = kwargs.get("report_id")
     if report_id is not None:
-        return User.objects.filter(projects__notes=report_id)
+        return User.objects.filter(created_takeaways__note=report_id).distinct()
 
     insight_id = kwargs.get("insight_id")
     if insight_id is not None:
-        return User.objects.filter(created_takeaways__insights=insight_id)
+        return User.objects.filter(created_takeaways__insights=insight_id).distinct()
 
     asset_id = kwargs.get("asset_id")
     if asset_id is not None:
-        return User.objects.filter(projects__assets=asset_id)
+        return User.objects.filter(created_takeaways__note__assets=asset_id).distinct()
 
     block_id = kwargs.get("block_id")
     if block_id is not None:
-        return User.objects.filter(projects__assets__blocks=block_id)
+        return User.objects.filter(
+            created_takeaways__note__assets__blocks=block_id
+        ).distinct()
 
     return User.objects.none()
 
@@ -122,6 +125,9 @@ def takeaway_types_in_scope(request):
 
 
 class TakeawayFilter(filters.FilterSet):
+    is_created_by_bot = filters.BooleanFilter(
+        field_name="created_by", method="filter_is_created_by_bot"
+    )
     created_by = ModelMultipleChoiceFilter(
         field_name="created_by__username",
         to_field_name="username",
@@ -150,11 +156,21 @@ class TakeawayFilter(filters.FilterSet):
             "priority",
             "tag",
             "created_by",
+            "is_created_by_bot",
             "created_at",
             "type",
             "report_type",
             "report_id",
         ]
+
+    def filter_is_created_by_bot(self, queryset, name, value):
+        match value:
+            case True:
+                return queryset.filter(created_by__username="bot@raijin.ai")
+            case False:
+                return queryset.exclude(created_by__username="bot@raijin.ai")
+            case _:
+                return queryset
 
 
 class NoteTakeawayFilter(TakeawayFilter):

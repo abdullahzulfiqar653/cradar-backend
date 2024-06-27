@@ -21,6 +21,7 @@ class BlockClusterCreateView(CreateAPIView):
     ordering = ["created_at"]
     search_fields = [
         "title",
+        "highlight__quote",
         "created_by__username",
         "created_by__first_name",
         "created_by__last_name",
@@ -30,13 +31,9 @@ class BlockClusterCreateView(CreateAPIView):
         block = self.request.block
 
         # Filter takeaways
-        filter_string = serializer.data["filter"]
-        if filter_string is None:
-            filter_string = block.asset.filter
+        filter_string = serializer.data.get("filter", "")
         block.filter = filter_string
         self.request._request.GET = QueryDict(filter_string)
-        takeaways = Takeaway.objects.filter(
-            note__project=self.request.block.asset.project
-        )
+        takeaways = Takeaway.objects.filter(note__assets=block.asset)
         takeaways = self.filter_queryset(takeaways)
         cluster_block(block, takeaways, self.request.user)
