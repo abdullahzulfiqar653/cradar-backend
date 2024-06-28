@@ -3,20 +3,66 @@ import json
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.http.request import QueryDict
+from django_filters.rest_framework import DjangoFilterBackend
 from pydub.utils import mediainfo
-from rest_framework import exceptions, generics, serializers
+from rest_framework import exceptions, filters, generics, serializers
+from rest_framework.filters import BaseFilterBackend
 
 from api.ai.transcribers import openai_transcriber
 from api.filters.note import NoteFilter
 from api.models.note import Note
+from api.models.property import Property
 from api.serializers.note import ProjectNoteSerializer
 from api.tasks import analyze_new_note
+
+
+class PropertyFilter(BaseFilterBackend):
+    # Applicable only to Note queryset
+    def filter_queryset(self, request, queryset, view):
+        for key in request.query_params.keys():
+            if not key.startswith("property_"):
+                continue
+            property_id = key[len("property_") :][:12]
+            # operator = key[len("property_") :][12:]
+            property = request.project.properties.filter(id=property_id).first()
+            if property is None:
+                continue
+            values = request.query_params.getlist(key)
+            match property.data_type:
+                case Property.DataType.TEXT:
+                    queryset = queryset.filter(
+                        note_properties__property=property,
+                        note_properties__text_value__in=values,
+                    )
+                case Property.DataType.NUMBER:
+                    queryset = queryset.filter(
+                        note_properties__property=property,
+                        note_properties__number_value__in=values,
+                    )
+                case Property.DataType.SELECT:
+                    queryset = queryset.filter(
+                        note_properties__property=property,
+                        note_properties__options__name__in=values,
+                        note_properties__notepropertyoption__order=0,
+                    )
+                case Property.DataType.MULTISELECT:
+                    queryset = queryset.filter(
+                        note_properties__property=property,
+                        note_properties__options__name__in=values,
+                    )
+        return queryset
 
 
 class ProjectNoteListCreateView(generics.ListCreateAPIView):
     queryset = Note.objects.all()
     serializer_class = ProjectNoteSerializer
     filterset_class = NoteFilter
+    filter_backends = [
+        DjangoFilterBackend,
+        PropertyFilter,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
     ordering_fields = [
         "created_at",
         "takeaway_count",
