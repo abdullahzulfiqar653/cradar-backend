@@ -100,7 +100,10 @@ def revert_revenue_to_property(apps, schema_editor):
     notes_to_update = []
     valid_values = ["High", "Medium", "Low"]
     for note_property in note_properties:
-        value = note_property.options.first().name
+        option = note_property.options.first()
+        if option is None:
+            continue
+        value = option.name
         if value not in valid_values:
             continue
         note_property.note.revenue = value
