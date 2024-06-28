@@ -1,15 +1,17 @@
 # note/serializers.py
 import logging
 
-from django.db.models import Count
+from django.db.models import Count, Prefetch
 from rest_framework import exceptions, serializers
 
 from api.ai.embedder import embedder
 from api.models.highlight import Highlight
 from api.models.keyword import Keyword
 from api.models.note import Note
+from api.models.note_property import NoteProperty
 from api.models.note_type import NoteType
 from api.models.organization import Organization
+from api.serializers.note_property import NotePropertySerializer
 from api.serializers.note_type import NoteTypeSerializer
 from api.serializers.organization import OrganizationSerializer
 from api.serializers.tag import KeywordSerializer
@@ -26,6 +28,9 @@ class NoteSerializer(serializers.ModelSerializer):
     keywords = KeywordSerializer(many=True, required=False)
     summary = serializers.JSONField(required=False, default=[])
     organizations = OrganizationSerializer(many=True, required=False)
+    properties = NotePropertySerializer(
+        many=True, read_only=True, source="note_properties"
+    )
     type = NoteTypeSerializer(read_only=True)
     type_id = serializers.PrimaryKeyRelatedField(
         source="type",
@@ -49,7 +54,6 @@ class NoteSerializer(serializers.ModelSerializer):
             "created_at",
             "organizations",
             "content",
-            "revenue",
             "description",
             "type",
             "type_id",
@@ -60,6 +64,7 @@ class NoteSerializer(serializers.ModelSerializer):
             "sentiment",
             "slack_channel_id",
             "slack_team_id",
+            "properties",
         ]
         read_only_fields = [
             "id",
@@ -138,6 +143,23 @@ class NoteSerializer(serializers.ModelSerializer):
         self.add_organizations(note, organizations)
         self.add_keywords(note, keywords)
         return note
+
+    @classmethod
+    def optimize_query(cls, queryset):
+        return (
+            queryset.select_related("author", "type")
+            .prefetch_related(
+                "organizations",
+                "keywords",
+                Prefetch(
+                    "note_properties",
+                    queryset=NoteProperty.objects.select_related(
+                        "property"
+                    ).prefetch_related("options"),
+                ),
+            )
+            .annotate(takeaway_count=Count("takeaways"))
+        )
 
 
 class NoteUpdateSerializer(NoteSerializer):

@@ -2,7 +2,6 @@ import json
 
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
-from django.db.models import Count
 from django.http.request import QueryDict
 from pydub.utils import mediainfo
 from rest_framework import exceptions, generics, serializers
@@ -36,11 +35,7 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        return self.request.project.notes.prefetch_related(
-            "author", "organizations", "keywords"
-        ).annotate(
-            takeaway_count=Count("takeaways"),
-        )
+        return ProjectNoteSerializer.optimize_query(self.request.project.notes.all())
 
     def to_dict(self, form_data):
         data_file = form_data.get("data")
