@@ -56,7 +56,6 @@ class Note(models.Model):
         Workspace, on_delete=models.CASCADE, related_name="notes"
     )
     organizations = models.ManyToManyField(Organization, related_name="notes")
-    revenue = models.CharField(max_length=6, choices=Revenue.choices, null=True)
     description = models.TextField()
     type = models.ForeignKey(
         NoteType, on_delete=models.SET_NULL, related_name="notes", null=True
