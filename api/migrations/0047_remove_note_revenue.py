@@ -114,7 +114,7 @@ def revert_revenue_to_property(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("api", "0043_remove_theme_description"),
+        ("api", "0046_feature_stripeproduct_workspace_stripe_customer_id_and_more"),
     ]
 
     operations = [
