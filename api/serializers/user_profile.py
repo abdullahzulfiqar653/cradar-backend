@@ -1,6 +1,7 @@
 # user/serializers.py
 from rest_framework import serializers
 
+from api.mixpanel import mixpanel
 from api.models.user import User
 from api.serializers.workspace import WorkspaceSerializer
 
@@ -39,4 +40,14 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         if "email" in validated_data:
             validated_data["username"] = validated_data["email"]
         # TODO: Update user object also
-        return super().update(instance, validated_data)
+        user = super().update(instance, validated_data)
+        mixpanel.people_set(
+            user.id,
+            {
+                "$email": user.email,
+                "$first_name": user.first_name,
+                "$last_name": user.last_name,
+                "$created": user.date_joined,
+            },
+        )
+        return user

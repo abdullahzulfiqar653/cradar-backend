@@ -1,7 +1,11 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pgvector.django import MaxInnerProduct
 from shortuuid.django_fields import ShortUUIDField
 
+from api.ai.embedder import embedder
+from api.models.chunk import Chunk
 from api.models.highlight import Highlight
 from api.models.keyword import Keyword
 from api.models.note_type import NoteType
@@ -99,3 +103,33 @@ class Note(models.Model):
     def get_content_markdown(self):
         lexical = LexicalProcessor(self.content["root"])
         return lexical.to_markdown()
+
+    def update_chunks(self):
+        lexical = LexicalProcessor(self.content["root"])
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000, chunk_overlap=100
+        )
+        sentences = {
+            text.strip()
+            for paragraph in lexical.to_text().split("\n")
+            for text in text_splitter.split_text(paragraph)
+            if text.strip()  # Check if there is some text after stripping
+        }
+
+        # Deleting old chunks
+        existing_sentences = {chunk.text: chunk for chunk in self.chunks.all()}
+        deleted_sentences = set(existing_sentences.keys()) - sentences
+        self.chunks.filter(text__in=deleted_sentences).delete()
+
+        # Adding new chunks
+        new_sentences = sentences - existing_sentences.keys()
+        vectors = embedder.embed_documents(new_sentences)
+        chunks_to_create = [
+            Chunk(text=sentence, note=self, vector=vector)
+            for sentence, vector in zip(new_sentences, vectors)
+        ]
+        Chunk.objects.bulk_create(chunks_to_create)
+
+    def search_chunks(self, query: str, limit: int = 10):
+        query_vector = embedder.embed_query(query)
+        return self.chunks.order_by(MaxInnerProduct("vector", query_vector))[:limit]

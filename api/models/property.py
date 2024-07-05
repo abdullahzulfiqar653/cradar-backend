@@ -4,6 +4,26 @@ from shortuuid.django_fields import ShortUUIDField
 
 from api.models.project import Project
 
+default_properties = [
+    {
+        "name": "Customer Organisation",
+        "description": "Name or identification of the customer organization.",
+        "data_type": "Text",
+    },
+    {
+        "name": "Revenue Estimation",
+        "description": "The impact of the customer on your revenue.",
+        "data_type": "Select",
+        "options": ["High", "Medium", "Low", "NA"],
+    },
+    {
+        "name": "Impact Estimation",
+        "description": "The impact the customer has.",
+        "data_type": "Select",
+        "options": ["High", "Medium", "Low", "NA"],
+    },
+]
+
 
 class Property(OrderedModel):
     class DataType(models.TextChoices):

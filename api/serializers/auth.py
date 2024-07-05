@@ -18,6 +18,7 @@ from rest_framework_simplejwt.serializers import (
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from api.mixpanel import mixpanel
 from api.models.invitation import Invitation
 from api.models.user import User
 from api.serializers.project import ProjectSerializer
@@ -25,10 +26,22 @@ from api.serializers.user import UserSerializer
 from api.serializers.workspace import WorkspaceSerializer
 
 
+def create_mixpanel_user(user):
+    mixpanel.people_set(
+        user.id,
+        {
+            "$email": user.email,
+            "$first_name": user.first_name,
+            "$last_name": user.last_name,
+            "$created": user.date_joined,
+        },
+    )
+
+
 class SignupSerializer(serializers.Serializer):
     username = serializers.EmailField()
-    first_name = serializers.CharField(max_length=100, required=False)
-    last_name = serializers.CharField(max_length=100, required=False)
+    first_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
     password = serializers.CharField(write_only=True)
 
     class Meta:
@@ -55,6 +68,7 @@ class SignupSerializer(serializers.Serializer):
         )
         user.set_password(validated_data.get("password"))
         user.save()
+        create_mixpanel_user(user)
 
         return user
 
@@ -94,6 +108,7 @@ class GoogleLoginSerializer(serializers.Serializer):
         if created:
             user.set_unusable_password()
             user.save()
+            create_mixpanel_user(user)
 
         # Generate access and refresh token
         refresh = RefreshToken.for_user(user)
@@ -305,6 +320,7 @@ class InvitationSignupSerializer(SignupSerializer):
         validated_data["workspace"] = invitation.workspace
         # Calling SignupSerializer.create method
         user = super().create(validated_data)
+        create_mixpanel_user(user)
         user.workspaces.add(invitation.workspace)
         user.projects.add(invitation.project)
 

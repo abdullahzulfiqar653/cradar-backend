@@ -8,6 +8,7 @@ from django_celery_results.models import TaskResult
 from api.ai.analyzer.asset_analyzer import AssetAnalyzer
 from api.ai.analyzer.note_analyzer import ExistingNoteAnalyzer, NewNoteAnalyzer
 from api.ai.analyzer.project_summarizer import ProjectSummarizer
+from api.mixpanel import mixpanel
 from api.models.asset import Asset
 from api.models.integrations.slack.slack_message_buffer import SlackMessageBuffer
 from api.models.note import Note
@@ -100,6 +101,15 @@ def analyze_asset(self, project_id, note_ids, takeaway_type_ids, user_id):
     asset = Asset.objects.create(project=project, created_by=user, task=task)
     notes = notes.filter(project=asset.project)
     asset.notes.set(notes)
+    mixpanel.track(
+        user.id,
+        "BE: Asset Created",
+        {
+            "asset_id": asset.id,
+            "project_id": asset.project.id,
+            "created_manually": False,
+        },
+    )
 
     # Generate for each takeaway type
     bot = User.objects.get(username="bot@raijin.ai")

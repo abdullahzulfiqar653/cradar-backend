@@ -90,6 +90,8 @@ class NewNoteAnalyzer:
             elif note.url:
                 self.download(note)
             end = time()
+            print("========> Update chunks")
+            note.update_chunks()
             print(f"Elapsed time: {end - start} seconds")
             print("========> Generating metadata")
             generate_metadata(note, created_by)

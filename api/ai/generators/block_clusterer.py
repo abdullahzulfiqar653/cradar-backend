@@ -18,9 +18,6 @@ def get_chain():
     class OutputFormatter(BaseModel):
         "Format the output into a JSON object with the given schema"
         title: str = Field(description="Give a title for the takeaway group")
-        description: str = Field(
-            description="Give a detailed description for the takeaway group"
-        )
 
     system_prompt = """
     The following are a group of closely-related takeaways extracted from multiple sources . 
@@ -71,6 +68,5 @@ def cluster_block(block: Block, takeaways: QuerySet[Takeaway], created_by: User)
 
         theme = block.themes.create(
             title=output.title,
-            description=output.description,
         )
         theme.takeaways.set(clusters[label])

@@ -1,0 +1,86 @@
+[
+  {
+    "model": "api.feature",
+    "pk": "G3kF9LTd5vT6",
+    "fields": {
+      "id": "G3kF9LTd5vT6",
+      "name": "Number of Editors",
+      "code": "number-of-editors",
+      "unit": "count",
+      "description": "The number of editors involved in a project.",
+      "default": 1
+    }
+  },
+  {
+    "model": "api.feature",
+    "pk": "U7M3nL2q4dN8",
+    "fields": {
+      "id": "U7M3nL2q4dN8",
+      "name": "Number of Projects",
+      "code": "number-of-projects",
+      "unit": "count",
+      "description": "The total number of projects.",
+      "default": 1
+    }
+  },
+  {
+    "model": "api.feature",
+    "pk": "K4h8fR9sT3V7",
+    "fields": {
+      "id": "K4h8fR9sT3V7",
+      "name": "Number of Knowledge Sources",
+      "code": "number-of-knowledge-sources",
+      "unit": "count",
+      "description": "The number of knowledge sources available.",
+      "default": 20
+    }
+  },
+  {
+    "model": "api.feature",
+    "pk": "Q2L9mN3bY5J6",
+    "fields": {
+      "id": "Q2L9mN3bY5J6",
+      "name": "Storage GB In Workspace",
+      "code": "storage-gb-workspace",
+      "unit": "GB",
+      "description": "The total storage available for the workspace in GB.",
+      "default": 15
+    }
+  },
+  {
+    "model": "api.feature",
+    "pk": "D1U7mN3bY5J6",
+    "fields": {
+      "id": "D1U7mN3bY5J6",
+      "name": "Duration In Minutes For Single File",
+      "code": "duration-minute-single-file",
+      "unit": "minutes",
+      "description": "The maximum duration for a single audio file in minutes.",
+      "default": 75
+    }
+  },
+  {
+    "model": "api.feature",
+    "pk": "D2V8mN3bY5J7",
+    "fields": {
+      "id": "D2V8mN3bY5J7",
+      "name": "Duration In Minutes For Workspace ",
+      "code": "duration-minute-workspace",
+      "unit": "minutes",
+      "description": "The total duration available for the workspace in minutes.",
+      "default": 600
+    }
+  },
+  {
+    "model": "api.feature",
+    "pk": "S2U0mN3bY5J9",
+    "fields": {
+      "id": "S2U0mN3bY5J9",
+      "name": "Storage MB In Single File ",
+      "code": "storage-mb-single-file",
+      "unit": "MB",
+      "description": "The maximum storage for a single file in MB.",
+      "default": 30
+    }
+  }
+]

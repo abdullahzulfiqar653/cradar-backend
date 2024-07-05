@@ -5,6 +5,7 @@ from django.db.models import Count, Prefetch
 from rest_framework import exceptions, serializers
 
 from api.ai.embedder import embedder
+from api.mixpanel import mixpanel
 from api.models.highlight import Highlight
 from api.models.keyword import Keyword
 from api.models.note import Note
@@ -142,6 +143,12 @@ class NoteSerializer(serializers.ModelSerializer):
         note = Note.objects.create(**validated_data)
         self.add_organizations(note, organizations)
         self.add_keywords(note, keywords)
+        note.update_chunks()
+        mixpanel.track(
+            note.author.id,
+            "BE: Knowledge Source Created",
+            {"source_id": note.id, "project_id": note.project.id},
+        )
         return note
 
     @classmethod
@@ -199,6 +206,7 @@ class NoteUpdateSerializer(NoteSerializer):
                 .delete()
             )
 
+        note.update_chunks()
         return note
 
     def extract_input_highlights(self, root: LexicalProcessor, new_highlight_id: str):

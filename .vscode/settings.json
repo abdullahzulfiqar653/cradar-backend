@@ -20,4 +20,5 @@
     "source.unusedImports"
   ],
   "python.terminal.activateEnvironment": true,
+  "python.analysis.autoImportCompletions": true,
 }

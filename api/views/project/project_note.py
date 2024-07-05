@@ -1,6 +1,5 @@
 import json
 
-from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.http.request import QueryDict
 from django_filters.rest_framework import DjangoFilterBackend
@@ -10,6 +9,7 @@ from rest_framework.filters import BaseFilterBackend
 
 from api.ai.transcribers import openai_transcriber
 from api.filters.note import NoteFilter
+from api.models.feature import Feature
 from api.models.note import Note
 from api.models.property import Property
 from api.serializers.note import ProjectNoteSerializer
@@ -119,6 +119,8 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
         return super().get_serializer(*args, **kwargs)
 
     def check_eligibility(self, serializer):
+        workspace = self.request.project.workspace
+
         if serializer.validated_data["file"] is None:
             # Skip checking if no file uploaded
             return
@@ -129,12 +131,28 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
             # Skip checking for transcription limit if not audio file
             return
 
-        file_size = serializer.validated_data["file"].size
-        total_file_size_in_gb = file_size / 1024 / 1024 / 1024
-        if total_file_size_in_gb > settings.STORAGE_GB_WORKSPACE:
-            limit = settings.STORAGE_GB_WORKSPACE
+        notes_limit = workspace.get_feature_value(
+            Feature.Code.NUMBER_OF_KNOWLEDGE_SOURCES
+        )
+        if workspace.notes.count() >= notes_limit:
             raise exceptions.PermissionDenied(
-                f"You have reached the storage limit of {limit} GB."
+                f"You have reached the limit of {notes_limit} Knowledge sources."
+            )
+
+        file_size_in_bytes = serializer.validated_data["file"].size
+        file_size_in_mb = file_size_in_bytes / 1024 / 1024
+        mb_limit = workspace.get_feature_value(Feature.Code.STORAGE_MB_SINGLE_FILE)
+        if file_size_in_mb > mb_limit:
+            raise exceptions.PermissionDenied(
+                f"You have reached the storage limit of {mb_limit} MB."
+            )
+
+        gb_limit = workspace.get_feature_value(Feature.Code.STORAGE_GB_WORKSPACE)
+        total_bytes = workspace.total_file_size + file_size_in_bytes
+        total_gbs = total_bytes / 1024 / 1024 / 1024
+        if total_gbs > gb_limit:
+            raise exceptions.PermissionDenied(
+                f"You have reached the storage limit of {gb_limit} GB."
             )
 
         # Extract audio info
@@ -145,18 +163,22 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
         # Check current audio file limit
         audio_duration_in_seconds = float(audio_info.get("duration"))
         audio_duration_in_minutes = audio_duration_in_seconds / 60
-        if audio_duration_in_minutes > settings.DURATION_MINUTE_SINGLE_FILE:
-            limit = settings.DURATION_MINUTE_SINGLE_FILE
+        minutes_limit = workspace.get_feature_value(
+            Feature.Code.DURATION_MINUTE_SINGLE_FILE
+        )
+        if audio_duration_in_minutes > minutes_limit:
             raise exceptions.PermissionDenied(
-                f"Please only upload audio file with less than {limit} minutes. "
+                f"Please only upload audio file with less than {minutes_limit} minutes. "
                 f"The current file has duration {round(audio_duration_in_minutes)} minutes."
             )
 
         # Check workspace-wise audio file limit
-        workspace = self.request.project.workspace
+        minutes_limit = workspace.get_feature_value(
+            Feature.Code.DURATION_MINUTE_WORKSPACE
+        )
         total_seconds = workspace.usage_seconds + audio_duration_in_seconds
         total_minutes = total_seconds / 60
-        if total_minutes > settings.DURATION_MINUTE_WORKSPACE:
+        if total_minutes > minutes_limit:
             raise exceptions.PermissionDenied(
                 "You have reached the audio transcription limit "
                 "so you can no longer upload audio files this month. "

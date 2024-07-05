@@ -3,8 +3,12 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from api.ai.embedder import embedder
+from api.mixpanel import mixpanel
+from api.models import Feature
 from api.models.note_type import NoteType, default_note_types
+from api.models.option import Option
 from api.models.project import Project
+from api.models.property import Property, default_properties
 from api.models.takeaway_type import TakeawayType, default_takeaway_types
 from api.serializers.workspace import WorkspaceDetailSerializer, WorkspaceSerializer
 
@@ -38,6 +42,19 @@ class ProjectSerializer(serializers.ModelSerializer):
             ]
         )
 
+    def create_default_properties(self, project):
+        options_to_create = []
+        for property_data in default_properties:
+            property = Property.objects.create(
+                project=project,
+                name=property_data["name"],
+                data_type=property_data["data_type"],
+                description=property_data["description"],
+            )
+            for option_name in property_data.get("options", []):
+                options_to_create.append(Option(property=property, name=option_name))
+        Option.objects.bulk_create(options_to_create)
+
     def create(self, validated_data):
         request = self.context.get("request")
         user = request.user
@@ -48,8 +65,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         if workspace is None:
             raise PermissionDenied("Do not have permission to access the workspace.")
 
-        if workspace.projects.count() > 1:
-            # We restrict user from creating more than 2 projects per workspace
+        feature_value = workspace.get_feature_value(Feature.Code.NUMBER_OF_PROJECTS)
+        if workspace.projects.count() >= feature_value:
+            # We limit users to the specified number of projects per workspace.
             raise PermissionDenied("Hit project limit of the workspace.")
 
         validated_data["workspace"] = workspace
@@ -57,6 +75,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         project = super().create(validated_data)
         self.create_default_note_types(project)
         self.create_default_takeaway_types(project)
+        self.create_default_properties(project)
+        mixpanel.track(
+            user.id,
+            "BE: Project Created",
+            {"project_id": project.id, "project_name": project.name},
+        )
         return project
 
 

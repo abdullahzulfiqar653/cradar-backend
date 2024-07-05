@@ -83,6 +83,49 @@ The cronjob is defined in cradarai/celery.py.
    ```
    Please run this before set this env var `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
 
+
+# Stripe Integration
+Before testing Stripe after deploying this branch and running migrations, follow these steps:
+
+1. Add a webhook endpoint and configure events in the Stripe dashboard:
+   - Navigate to the Stripe dashboard.
+   - Add a webhook endpoint URL and select the following events:
+      - customer
+      - checkout
+      - price
+      - product
+
+2. Configure .env variables for Stripe in your system:
+   - Ensure the following environment variables for Stripe are set in .env file:
+      - `STRIPE_SECRET_KEY`
+      - `STRIPE_PUBLISHABLE_KEY`
+      - `STRIPE_WEBHOOK_SECRET_KEY`
+
+3. Create a superuser for admin access:
+   - Run `python manage.py createsuperuser` in the terminal.
+   - Alternatively, update any user record in the database to set `is_staff=True` and `is_superuser=True`.
+
+4. Access the Django admin interface:
+   - Go to {backend_url}/admin and log in using the superuser credentials created in step 3.
+
+5. Sync **Stripe products** and map usage types:
+   - Go to [Stripe Products] and Click on top right [SYNC PRODUCTS WITH STRIPE]
+   - After products are synced with Stripe, click on each product to map it with respective workspace usage types.
+
+6. Sync Stripe prices:
+   - Go to [Stripe Prices] in the admin panel.
+   - Click on [Sync Prices With Stripe] at the top right corner to synchronize prices with Stripe.
+
+7. Map features to products:
+   - Navigate to [Feature Assignment] in the admin panel.
+   - Create records to map features with each product for proper feature assignment.
+ 
+8. Activate free trial subscriptions for workspaces:
+   - Navigate to [Stripe Subscriptions] in the admin panel.
+   - Click on [ACTIVATE FREE TRIAL SUBSCRIPTIONS FOR WORKSPACES] located at the top right corner of the page.
+
+These steps ensure that your Stripe integration is properly configured and synced with your Django application, ready for testing.
+
 # Slack Integration Documentation
 
 ## Using ngrok for local testing

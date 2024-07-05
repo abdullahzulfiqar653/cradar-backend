@@ -45,7 +45,10 @@ nltk = "==3.8.1"
 readability-lxml = "==0.8.1"
 lxml = {extras = ["html_clean"], version = "==5.2.2"}
 celery = {extras = ["sqs", "redis"], version = "==5.4.0"}
-django-celery-results = "*"
+django-celery-results = "==2.5.1"
+mixpanel = "==4.10.1"
+stripe = "==10.1.0"
+whitenoise = "==6.7.0"
 
 [dev-packages]
 ipykernel = "*"

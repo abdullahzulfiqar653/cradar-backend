@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from api.mixpanel import mixpanel
 from api.models.asset import Asset
 from api.models.block import Block
 from api.models.note import Note
@@ -45,7 +46,17 @@ class AssetSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         validated_data["project"] = request.project
         validated_data["created_by"] = request.user
-        return super().create(validated_data)
+        asset = super().create(validated_data)
+        mixpanel.track(
+            request.user.id,
+            "BE: Asset Created",
+            {
+                "asset_id": asset.id,
+                "project_id": asset.project.id,
+                "created_manually": True,
+            },
+        )
+        return asset
 
     def update(self, asset: Asset, validated_data):
         if asset.task and asset.task.status in {"STARTED", "PROGRESS"}:

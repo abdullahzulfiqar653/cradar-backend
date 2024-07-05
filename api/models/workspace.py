@@ -5,8 +5,13 @@ from django.utils import timezone
 from django.utils.text import slugify
 from shortuuid.django_fields import ShortUUIDField
 
+from api.models.feature import Feature
+from api.models.product_feature import ProductFeature
+from api.models.stripe_price import StripePrice
+from api.models.stripe_subscription import StripeSubscription
 from api.models.user import User
 from api.models.workspace_user import WorkspaceUser
+from api.stripe import stripe
 
 
 class Workspace(models.Model):
@@ -31,6 +36,7 @@ class Workspace(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     logo_url = models.URLField(blank=True)
     domain_slug = models.SlugField(max_length=50, unique=True)
+    stripe_customer_id = models.CharField(max_length=30, blank=True, editable=False)
 
     members = models.ManyToManyField(
         User, through=WorkspaceUser, related_name="workspaces"
@@ -77,3 +83,31 @@ class Workspace(models.Model):
         # Generate the domain slug based on the workspace name
         self.domain_slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+    def get_feature_value(self, feature_code):
+        feature = Feature.objects.get(code=feature_code)
+        product_feature = ProductFeature.objects.filter(
+            product__subscriptions__workspace=self,
+            product__subscriptions__status__in=[
+                StripeSubscription.Status.ACTIVE,
+                StripeSubscription.Status.TRIALING,
+            ],
+            product__subscriptions__end_at__gt=timezone.now(),
+            feature=feature,
+        ).first()
+        return product_feature.value if product_feature else feature.default
+
+    def get_product_price_id(self):
+        price = StripePrice.objects.filter(product__usage_type=self.usage_type).first()
+        return price.id
+
+    def get_stripe_customer_id(self, user):
+        if not self.stripe_customer_id:
+            customer = stripe.Customer.create(
+                name=user.get_full_name(),
+                email=user.username,
+                metadata={"user_id": user.id, "workspace_id": self.id},
+            )
+            self.stripe_customer_id = customer.id
+            self.save()
+        return self.stripe_customer_id

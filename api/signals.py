@@ -1,12 +1,16 @@
+import os
+from django.apps import apps
 from django.db.models import Count
-from django.db.models.signals import m2m_changed, post_delete
 from django.dispatch import receiver
+from django.core.management import call_command
+from django.db.models.signals import m2m_changed, post_delete, post_migrate
 
-from api.models.keyword import Keyword
-from api.models.note import Note
-from api.models.organization import Organization
+
 from api.models.tag import Tag
+from api.models.note import Note
+from api.models.keyword import Keyword
 from api.models.takeaway import Takeaway
+from api.models.organization import Organization
 
 
 def cleanup_keywords():
@@ -44,3 +48,9 @@ def takeaway_tags_changed(sender, action, instance, reverse, pk_set, **kwargs):
 @receiver(post_delete, sender=Takeaway)
 def post_delete_takeaway(sender, instance, **kwargs):
     cleanup_tags()
+
+
+@receiver(post_migrate, sender=apps.get_app_config('api'))
+def load_data_from_fixture(sender, **kwargs):
+    fixture_file = os.path.join('api', 'fixtures', 'features.json')
+    call_command('loaddata', fixture_file, app_label='api')
