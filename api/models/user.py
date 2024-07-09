@@ -16,6 +16,7 @@ class User(AbstractUser):
     saved_takeaways = models.ManyToManyField(
         "api.Takeaway", related_name="saved_by", through="api.UserSavedTakeaway"
     )
+    tutorial = models.JSONField(default=dict)
     objects = CustomUserManager()
 
     def get_role(self, workspace):

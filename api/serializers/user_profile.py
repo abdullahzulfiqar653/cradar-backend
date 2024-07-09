@@ -20,6 +20,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             "skip_tutorial",
             "consent_given",
             "job",
+            "tutorial",
         ]
 
     def validate_email(self, value):
