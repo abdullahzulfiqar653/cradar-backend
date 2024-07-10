@@ -5,14 +5,27 @@ from rest_framework import exceptions, serializers
 
 from api.mixpanel import mixpanel
 from api.models.workspace import Workspace
-from api.stripe import stripe
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(max_length=100)
     is_owner = serializers.BooleanField(read_only=True)
-    usage_type = serializers.ChoiceField(choices=Workspace.UsageType.choices)
+    subscription_end_at = serializers.CharField(
+        source="subscription.end_at", read_only=True
+    )
+    subscription_is_free_trial = serializers.BooleanField(
+        source="subscription.is_free_trial", read_only=True
+    )
+    subscription_name = serializers.CharField(
+        source="subscription.product.name", read_only=True
+    )
+    subscription_type = serializers.SerializerMethodField()
+
+    def get_subscription_type(self, workspace) -> str:
+        if hasattr(workspace, "subscription"):
+            return workspace.subscription.product.usage_type
+        return ""
 
     class Meta:
         model = Workspace
@@ -20,9 +33,12 @@ class WorkspaceSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "is_owner",
-            "usage_type",
             "industry",
             "company_size",
+            "subscription_type",
+            "subscription_name",
+            "subscription_end_at",
+            "subscription_is_free_trial",
         ]
 
     def validate_name(self, value):
@@ -53,13 +69,6 @@ class WorkspaceSerializer(serializers.ModelSerializer):
             {"workspace_id": workspace.id, "workspace_name": workspace.name},
         )
 
-        stripe.Subscription.create(
-            customer=workspace.get_stripe_customer_id(user),
-            items=[{"price": workspace.get_product_price_id()}],
-            metadata={"workspace_id": workspace.id, "user_id": user.id},
-            trial_period_days=14,
-        )
-
         return workspace
 
     def to_representation(self, instance):
@@ -70,28 +79,14 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
 class WorkspaceDetailSerializer(WorkspaceSerializer):
     usage_minutes = serializers.SerializerMethodField()
-    subscription_end_at = serializers.CharField(
-        source="subscription.end_at", read_only=True
-    )
-    subscription_is_free_trial = serializers.BooleanField(
-        source="subscription.is_free_trial", read_only=True
-    )
-    subscription_name = serializers.CharField(
-        source="subscription.product.name", read_only=True
-    )
 
     def get_usage_minutes(self, workspace) -> int:
         return round(workspace.usage_seconds / 60)
 
     class Meta:
         model = Workspace
-        fields = [
-            "id",
-            "name",
+        fields = WorkspaceSerializer.Meta.fields + [
             "usage_minutes",
             "usage_tokens",
             "total_file_size",
-            "subscription_name",
-            "subscription_end_at",
-            "subscription_is_free_trial",
         ]

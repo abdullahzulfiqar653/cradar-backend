@@ -2,6 +2,7 @@ from django.db.models import QuerySet
 from rest_framework import exceptions
 
 from api.ai.generators.asset_generator import generate_content
+from api.ai.generators.asset_title_generator import generate_asset_title
 from api.ai.generators.block_clusterer import cluster_block
 from api.models.asset import Asset
 from api.models.block import Block
@@ -61,8 +62,7 @@ class AssetAnalyzer:
         lexical.prepend(summary)
 
         print("========> Generating title")
-        question = "Give a short and concise title for this report. Do not repeat the content. Do not format."
-        title = generate_content(asset, question, empty_takeaways, created_by)
+        title = generate_asset_title(asset, created_by)
         asset.title = title.replace("<cursor/>", "")
         if len(asset.title) > 255:
             asset.title = asset.title[:252] + "..."

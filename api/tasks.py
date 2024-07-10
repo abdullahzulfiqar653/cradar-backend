@@ -94,7 +94,9 @@ def analyze_asset(self, project_id, note_ids, takeaway_type_ids, user_id):
     project = Project.objects.get(id=project_id)
     user = User.objects.get(id=user_id)
     notes = Note.objects.filter(id__in=note_ids)
-    takeaway_types = TakeawayType.objects.filter(id__in=takeaway_type_ids)
+    takeaway_types = TakeawayType.objects.filter(
+        id__in=takeaway_type_ids, project=project
+    )
 
     # Create Asset
     task = TaskResult.objects.get(task_id=self.request.id)

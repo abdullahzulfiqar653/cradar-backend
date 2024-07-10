@@ -5,7 +5,6 @@ from api.tasks import analyze_asset
 
 class ProjectAssetAnalyzeSerializer(serializers.Serializer):
     report_ids = serializers.ListField(child=serializers.CharField())
-    takeaway_type_ids = serializers.ListField(child=serializers.CharField())
 
     def validate_report_ids(self, value):
         request = self.context.get("request")
@@ -28,7 +27,9 @@ class ProjectAssetAnalyzeSerializer(serializers.Serializer):
     def create(self, validated_data):
         request = self.context.get("request")
         note_ids = validated_data.get("report_ids")
-        takeaway_type_ids = validated_data.get("takeaway_type_ids")
+        takeaway_type_ids = list(
+            request.project.takeaway_types.values_list("id", flat=True)
+        )
         analyze_asset.delay(
             request.project.id, note_ids, takeaway_type_ids, request.user.id
         )
