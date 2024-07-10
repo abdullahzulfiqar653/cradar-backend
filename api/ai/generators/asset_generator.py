@@ -45,8 +45,10 @@ def generate_content(
             The user is working on a analysis report. 
             Follow the user's instruction to generate the content for the report based on the given context,
             which includes the notes that user has made and the current report content.
+            However, if the user's instruction is not related to the context, tell user that the context is irrelevant.
             The tag <cursor/> indicates where the user wants the generated content to be placed.
             The generated content should be relevant to the context and should be in a readable format.
+            Keep the generated content to within 300 words.
         """
     )
     human_prompt = construct_prompt(asset, instruction, takeaways)
