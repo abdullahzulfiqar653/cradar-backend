@@ -4,6 +4,7 @@ from django.utils.text import slugify
 from rest_framework import exceptions, serializers
 
 from api.mixpanel import mixpanel
+from api.models.feature import Feature
 from api.models.workspace import Workspace
 
 
@@ -78,15 +79,56 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
 
 class WorkspaceDetailSerializer(WorkspaceSerializer):
+    editors = serializers.SerializerMethodField()
+    projects = serializers.SerializerMethodField()
     usage_minutes = serializers.SerializerMethodField()
+    knowledge_sources = serializers.SerializerMethodField()
+    usage_minutes_limit = serializers.SerializerMethodField()
+    storage_usage_limit = serializers.SerializerMethodField()
 
     def get_usage_minutes(self, workspace) -> int:
         return round(workspace.usage_seconds / 60)
 
+    def get_usage_minutes_limit(self, workspace) -> int:
+        return workspace.get_feature_value(Feature.Code.DURATION_MINUTE_WORKSPACE)
+
+    def get_storage_usage_limit(self, workspace) -> int:
+        return (
+            workspace.get_feature_value(Feature.Code.STORAGE_GB_WORKSPACE)
+            * 1024
+            * 1024
+            * 1024
+        )
+
+    def get_projects(self, workspace: Workspace) -> dict:
+        return {
+            "quota": workspace.get_feature_value(Feature.Code.NUMBER_OF_PROJECTS),
+            "usage": workspace.projects.count(),
+        }
+
+    def get_editors(self, workspace: Workspace) -> dict:
+        return {
+            "quota": workspace.get_feature_value(Feature.Code.NUMBER_OF_EDITORS),
+            "usage": workspace.workspace_users.count(),
+        }
+
+    def get_knowledge_sources(self, workspace: Workspace) -> dict:
+        return {
+            "quota": workspace.get_feature_value(
+                Feature.Code.NUMBER_OF_KNOWLEDGE_SOURCES
+            ),
+            "usage": workspace.notes.count(),
+        }
+
     class Meta:
         model = Workspace
         fields = WorkspaceSerializer.Meta.fields + [
-            "usage_minutes",
+            "editors",
+            "projects",
             "usage_tokens",
+            "usage_minutes",
             "total_file_size",
+            "knowledge_sources",
+            "usage_minutes_limit",
+            "storage_usage_limit",
         ]
