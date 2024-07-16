@@ -18,7 +18,7 @@ class Feature(models.Model):
     products = models.ManyToManyField("api.StripeProduct", through="ProductFeature")
     unit = models.CharField(max_length=50)
     description = models.TextField(blank=True)
-    default = models.IntegerField(default=0)
+    default = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name

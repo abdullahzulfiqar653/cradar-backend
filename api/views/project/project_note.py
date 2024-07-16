@@ -83,10 +83,11 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
         notes_limit = workspace.get_feature_value(
             Feature.Code.NUMBER_OF_KNOWLEDGE_SOURCES
         )
-        if workspace.notes.count() >= notes_limit:
-            raise exceptions.PermissionDenied(
-                f"You have reached the limit of {notes_limit} Knowledge sources."
-            )
+        if notes_limit is not None:
+            if workspace.notes.count() >= notes_limit:
+                raise exceptions.PermissionDenied(
+                    f"You have reached the limit of {notes_limit} Knowledge sources."
+                )
 
         if serializer.validated_data["file"] is None:
             # Skip checking if no file uploaded
@@ -97,6 +98,7 @@ class ProjectNoteListCreateView(generics.ListCreateAPIView):
         if file_type not in openai_transcriber.supported_filetypes:
             # Skip checking for transcription limit if not audio file
             return
+
 
         file_size_in_bytes = serializer.validated_data["file"].size
         file_size_in_mb = file_size_in_bytes / 1024 / 1024
