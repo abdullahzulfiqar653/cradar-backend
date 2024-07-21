@@ -1,5 +1,8 @@
 from django.db import models
+from django.db.models.functions import Coalesce
+from django.db.models import OuterRef, Subquery
 from shortuuid.django_fields import ShortUUIDField
+from api.models.product_feature import ProductFeature
 
 
 class Feature(models.Model):
@@ -26,3 +29,14 @@ class Feature(models.Model):
     class Meta:
         verbose_name = "Product Feature"
         verbose_name_plural = "Product Features"
+
+    def get_feature_value(self, workspace, feature_code):
+        sub_query = ProductFeature.objects.filter(
+            feature=OuterRef("pk"), product__subscriptions__workspace=workspace
+        )
+
+        feature = Feature.objects.annotate(
+            value=Coalesce(Subquery(sub_query.values("value")[:1]), "default")
+        )
+
+        return feature.get(code=feature_code).value
