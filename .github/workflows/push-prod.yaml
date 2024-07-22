@@ -33,15 +33,12 @@ jobs:
   
       - name: Build and tag Docker image
         run: |
-          docker build -t $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }} -t $ECR_REPO_ROOT/$ECR_REPO_NAME:raijin-prod -t $ECR_REPO_ROOT/$ECR_REPO_NAME:kizunna-prod .
+          docker build -t $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }} -t $ECR_REPO_ROOT/$ECR_REPO_NAME:raijin-prod .
           docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:${{ github.sha }}
           docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:raijin-prod
-          docker push $ECR_REPO_ROOT/$ECR_REPO_NAME:kizunna-prod
 
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster raijin-prod-ecs-cluster --service raijin-prod-django-service --force-new-deployment
           aws ecs update-service --cluster raijin-prod-ecs-cluster --service raijin-prod-celery-worker-service --force-new-deployment
           
-          aws ecs update-service --cluster kizunna-prod-ecs-cluster --service kizunna-prod-django-service --force-new-deployment
-          aws ecs update-service --cluster kizunna-prod-ecs-cluster --service kizunna-prod-celery-worker-service --force-new-deployment
