@@ -20,6 +20,15 @@ from api.views.insight.insight_takeaway import (
     InsightTakeawayDeleteView,
     InsightTakeawayListCreateView,
 )
+from api.views.integrations.googledrive.googledrive_list_files import (
+    GoogleDriveListFilesView,
+)
+from api.views.integrations.googledrive.googledrive_oauth_redirect import (
+    GoogleDriveOauthRedirectView,
+)
+from api.views.integrations.googledrive.googledrive_oauth_url import (
+    GoogleDriveOauthUrlRetrieveView,
+)
 from api.views.integrations.mixpanel.event import MixpanelEventCreateView
 from api.views.integrations.slack.channel import SlackChannelsListView
 from api.views.integrations.slack.event import SlackEventsCreateView
@@ -260,6 +269,21 @@ urlpatterns = [
         "projects/<str:pk>/dummy-reports/",
         ProjectDummyNoteCreateView.as_view(),
         name="project-dummy-note-create",
+    ),
+    path(
+        "projects/<str:project_id>/integrations/google_drive/oauth-url/",
+        GoogleDriveOauthUrlRetrieveView.as_view(),
+        name="project-googledrive-oauth-url",
+    ),
+    path(
+        "projects/<str:project_id>/integrations/google_drive/oauth-redirect/",
+        GoogleDriveOauthRedirectView.as_view(),
+        name="project-googledrive-oauth-redirect",
+    ),
+    path(
+        "projects/<str:project_id>/integrations/google_drive/files/",
+        GoogleDriveListFilesView.as_view(),
+        name="project-googledrive-files",
     ),
     # =====================================================
     # Workspace

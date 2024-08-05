@@ -1,15 +1,13 @@
-import json
 from textwrap import dedent
 
 from django.db.models import QuerySet
-from django.utils.translation import gettext
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.document import Document
 from langchain.text_splitter import TokenTextSplitter
 from langchain_openai.chat_models import ChatOpenAI
 from nltk.tokenize import sent_tokenize
-from pydantic.v1 import BaseModel, Field
+from pydantic.v1 import BaseModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from api.ai import config
@@ -26,101 +24,96 @@ from api.utils.lexical import LexicalProcessor
 
 def get_chain(takeaway_type: TakeawayType):
     system_prompt = dedent(
-        """Extract highly impactful {takeaway_type_name} from the source below.
+        """
+            You are tasked with extracting specific information from a given transcript. Here are the details:
 
-        Separate different ideas into each {takeaway_type_name},
-        each {takeaway_type_name} should convey a single idea only.
+            Extraction Name:
+            <extraction_name>
+            {{EXTRACTION_NAME}}
+            </extraction_name>
 
-        Each {takeaway_type_name} should contain a topic, an insight,
-        the significance of the takeaway, and the takeaway type.
+            Extraction Definition:
+            <extraction_definition>
+            {{EXTRACTION_DEFINITION}}
+            </extraction_definition>
 
-        Give your output solely from information extracted from user given text.
+            Now, carefully read and analyze the following transcript:
 
-        Generate JSON data according to the following schema:
+            <transcript>
+            {{TRANSCRIPT}}
+            </transcript>
 
+            Your task is to extract key takeaways from the transcript based on the extraction name and definition provided. Follow these steps:
 
-        Schema:
+            1. Identify the main topics discussed in the transcript that relate to the extraction name and definition.
 
-        {schema}
+            2. For each relevant topic, determine:
+                a) The key insight or information presented
+                b) The significance or importance of this insight
+                c) A verbatim quote from the transcript that best supports this takeaway
 
+            3. Format your findings into a JSON structure with the following format:
+                {
+                    "takeaways": [
+                        {
+                            "topic": "<topic of the takeaway>",
+                            "insight": "<the insight of the takeaway>",
+                            "significance": "<the significance of the takeaway>",
+                            "quote": "<the verbatim quote from the transcript that supports the takeaway>"
+                        }
+                    ]
+                }
 
-        For example, the output should be the following:
+            4. Ensure that each takeaway is directly related to the extraction name and definition.
 
-        {example}"""
-    )
+            5. Limit your response to the most important and relevant takeaways. Typically, this should be between 3-5 takeaways, but use your judgment based on the transcript's content and the specificity of the extraction requirements.
 
-    class TakeawaySchema(BaseModel):
-        f"The {takeaway_type.name} extracted from the source.",
+            6. Double-check that all quotes are exact matches from the transcript.
 
-        topic: str = Field(
-            description=f"Topic of the {takeaway_type.name} for grouping."
-        )
-        insight: str = Field(
-            description=f"The {takeaway_type.name} - {takeaway_type.definition}."
-        )
-        significance: str = Field(
-            description=(
-                f"Give robust reason to your inference as to why the {takeaway_type.name} is important, "
-                "based on the severity of the language used, how much it was stressed, and/or the frequency of this is mentioned."
-            )
-        )
-        quote: str = Field(
-            description=f"The verbatim quote from the source that supports the {takeaway_type.name}."
-        )
+            7. Make sure the JSON is properly formatted and valid.
 
-    class TakeawaysSchema(BaseModel):
-        "A list of extracted takeaways."
-
-        takeaways: list[TakeawaySchema] = Field(
-            description=f"A list of {takeaway_type.name} extracted from the text."
-        )
-
-    schema = TakeawaysSchema.schema_json().replace("{", "{{").replace("}", "}}")
-    example = (
-        json.dumps(
+            <example_output>
             {
                 "takeaways": [
                     {
                         "topic": "Poor Onboarding Experience",
                         "insight": "This user complains that the onboarding and setup experience is terrible and does not know how to get to the core value of the software",
                         "significance": "[The significance of the takeaway]",
+                        "quote": "[the verbatim quote from the transcript that supports the takeaway]"
                     },
                     {
                         "topic": "Automated User Research and Automated Tagging",
                         "insight": "This user was delighted that the software automated away all of their manual tasks for user research when it automatically tagged all the notes that the user created",
                         "significance": "[The significance of the takeaway]",
+                        "quote": "[the verbatim quote from the transcript that supports the takeaway]"
                     },
                     {
                         "topic": "Not doing enough user interviews",
                         "insight": "[User's name] mentioned that they would like to be able to do more interviews on their customer brands and investigate what are their problems. This would then allow them to identify problem statements that they can solve for their customer brands",
                         "significance": "[The significance of the takeaway]",
+                        "quote": "[the verbatim quote from the transcript that supports the takeaway]"
                     },
                 ]
-            },
-            indent=2,
-        )
-        .replace("{", "{{")
-        .replace("}", "}}")
+            }
+            </example_output>
+
+            Output only the JSON structure with your findings, without any additional text or explanation.
+        """
     )
+
+    class TakeawaySchema(BaseModel):
+        topic: str
+        insight: str
+        significance: str
+        quote: str
+
+    class TakeawaysSchema(BaseModel):
+        takeaways: list[TakeawaySchema]
 
     llm = ChatOpenAI(model=config.model)
     prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                gettext(
-                    system_prompt.format(
-                        schema=schema,
-                        example=example,
-                        takeaway_type_name=takeaway_type.name,
-                    )
-                ),
-            ),
-            (
-                "human",
-                gettext("\nSource: \n{source}"),
-            ),
-        ]
+        [("system", system_prompt)],
+        template_format="jinja2",
     )
     parser = PydanticOutputParser(pydantic_object=TakeawaysSchema)
     chain = prompt | llm.bind(response_format={"type": "json_object"}) | parser
@@ -145,7 +138,11 @@ def generate_takeaways(
             {
                 "takeaway_type": takeaway_type,
                 "output": get_chain(takeaway_type).invoke(
-                    {"source": doc.page_content},
+                    {
+                        "TRANSCRIPT": doc.page_content,
+                        "EXTRACTION_NAME": takeaway_type.name,
+                        "EXTRACTION_DEFINITION": takeaway_type.definition,
+                    },
                     config={"callbacks": [ParserErrorCallbackHandler()]},
                 ),
             }

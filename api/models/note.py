@@ -71,6 +71,7 @@ class Note(models.Model):
     )
     file_type = models.CharField(max_length=4, choices=FileType.choices, null=True)
     file_size = models.IntegerField(null=True, help_text="File size measured in bytes.")
+    google_drive_file_timestamp = models.DateTimeField(null=True)
     is_analyzing = models.BooleanField(default=False)
     is_auto_tagged = models.BooleanField(default=False)
     content = models.JSONField(default=blank_content)
