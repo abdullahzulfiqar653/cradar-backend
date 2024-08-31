@@ -60,7 +60,7 @@ def cluster_block(block: Block, takeaways: QuerySet[Takeaway], created_by: User)
 
     chain = get_chain()
     block.themes.all().delete()
-    for label in range(max(labels)):
+    for label in range(max(labels) + 1):
         text = "- " + "\n- ".join([takeaway.title for takeaway in clusters[label]])
 
         with token_tracker(block.asset.project, block, "cluster-block", created_by):

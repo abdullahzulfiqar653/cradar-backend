@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "storages",
     "django_cleanup",  # To delete the file when the model instance that contains the file is deleted.
     "django_celery_results",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -315,6 +316,11 @@ SLACK_REDIRECT_URI = os.getenv("SLACK_REDIRECT_URI")
 DEMO_PROJECT_ID = env("DEMO_PROJECT_ID", default=None)
 DEMO_USER_ID = env("DEMO_USER_ID", default=None)
 
+# Google drive integration credentials
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI")
+GOOGLE_SCOPES = env("GOOGLE_SCOPES")
 
 MIXPANEL_TOKEN = env("MIXPANEL_TOKEN")
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")

@@ -143,12 +143,11 @@ These steps ensure that your Stripe integration is properly configured and synce
 6. Go to the OAuth & Permissions in slack dashboard and set the Redirect URLs to the value below. Then set the same value to the `SLACK_REDIRECT_URI` in .env:
    1. For local testing set `SLACK_REDIRECT_URI=https://{backend_domain}/api/integrations/slack/to-frontend/`
    2. For prod set `SLACK_REDIRECT_URI=https://{frontend_domain}/slack/redirect`
-7. Go to frontend page and click Add To Slack button on header. Will be navigated to Slack OAuth page. 
-8. Click continue and proceed with authorization after reading permissions. Will be redirected to the redirect URL provided. 
+7. Go to frontend page and click Add To Slack button on header. Will be navigated to Slack OAuth page.
+8. Click continue and proceed with authorization after reading permissions. Will be redirected to the redirect URL provided.
    1. For local testing, this will redirect to `{backend_domain}/api/integrations/slack/to-frontend/` which will then redirect to `{frontend_domain}/slack/redirect`. We do this because ngrok only support one port.
    2. For production, this will redirect to `{frontend_domain}/slack/redirect` directly.
-9.  The frontend redirect page will call `{backend_domain}/api/integrations/slack/oauth-redirect/` after successful authorization. This will add `SlackUser`. 
-
+9. The frontend redirect page will call `{backend_domain}/api/integrations/slack/oauth-redirect/` after successful authorization. This will add `SlackUser`.
 
 10. Back on Raijin, click Add Your Data.
 11. Click Slack Channel Autocomplete field to open dropdown of Slack channels. Check that channels correspond to channels in connected Slack Workspace.
@@ -240,3 +239,23 @@ Below is the sequence diagram illustrating the communication flow between the us
    - Check if user has the permission to access the resource (project in this case).
    - If the user has the right access, attach the resource to the `request`.
    - In the serializers and views, access the resource from the `request` to reduce the number of queries.
+
+# Google Drive Integration Documentation
+
+## Steps for local testing
+
+1. Setup for Google Console:
+   - Go to Google Cloud web interface to access the API & Services page for Raijin: https://console.cloud.google.com/apis/credentials/oauthclient/
+   - Go to the Credentials tab. You should see "Raijin Google Login" as the Name.
+   - Set Authorized JavaScript Origins URL as frontend localhost domain, for e.g. `http://localhost:5173`
+   - Set Authorized redirect URIs as `{frontend localhost domain}/googledrive/redirect`
+   - Save changes
+2. Runserver on backend and start frontend to login to Raijin web app.
+3. Find "Connect to Google Drive" button on header component. Click to kickstart OAuth process.
+4. "Connect to Google Drive" button will bring you to Google OAuth page. Choose Google account you want to connect Raijin account to and click "continue".
+5. After successful authorization, the page will automatically redirect to frontend redirect page, which will show a success message popup.
+6. Page will automatically redirect back to Raijin account after success message popup is displayed.
+7. Open Create Knowledge Source Dialog on frontend page and click on the Google Drive input component.
+8. Check that Google Drive files are accessed and displayed in the dropdown.
+9. Select Google Drive file to create Knowledge Source with and click "continue".
+10. Once Knowledge Source is created, check that the Knowledge Source has the correct file attached to it.
