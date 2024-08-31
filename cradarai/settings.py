@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "storages",
     "django_cleanup",  # To delete the file when the model instance that contains the file is deleted.
     "django_celery_results",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
