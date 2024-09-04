@@ -98,6 +98,7 @@ REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "detail",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 200,
 }
 
 SPECTACULAR_SETTINGS = {
