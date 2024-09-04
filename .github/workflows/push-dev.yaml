@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install AWS CLI
         run: |
@@ -41,3 +43,13 @@ jobs:
         run: |
           aws ecs update-service --cluster kizunna-dev-ecs-cluster --service kizunna-dev-django-service --force-new-deployment
           aws ecs update-service --cluster kizunna-dev-ecs-cluster --service kizunna-dev-celery-worker-service --force-new-deployment
+
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env: 
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: kizunna-dev
+  
